@@ -312,7 +312,7 @@ try:
                             "version": 2,
                             "width": 160,
                             "height": 32,
-                            "title": "Real Codex 0.159.0 offline smoke; no quota demo data",
+                            "title": "Real Codex 0.159.0 offline smoke; no quota data",
                             "env": {"TERM": "xterm-256color"},
                         }
                     )

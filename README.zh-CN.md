@@ -3,7 +3,7 @@
 **一眼看清 Codex 的 context 和额度。**
 
 [![tests](https://github.com/Moviw/codex-statusline/actions/workflows/tests.yml/badge.svg)](https://github.com/Moviw/codex-statusline/actions/workflows/tests.yml)
-[![PyPI](https://img.shields.io/pypi/v/codex-statusline)](https://pypi.org/project/codex-statusline/)
+[![PyPI](https://img.shields.io/pypi/v/codex-statusline?label=PyPI)](https://pypi.org/project/codex-statusline/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 [English](README.md) | 简体中文
@@ -53,7 +53,7 @@ codex resume --last
 codex exec 'task'         # 非交互命令直接透传，不显示底栏
 
 codex-statusline doctor   # 检查版本与依赖
-codex-statusline preview --demo --width 80   # 不启动 Codex 预览效果
+codex-statusline preview --width 80   # 不启动 Codex 预览效果
 codex-statusline uninstall
 ```
 

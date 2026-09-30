@@ -3,14 +3,14 @@
 **See your Codex context and quota at a glance.**
 
 [![tests](https://github.com/Moviw/codex-statusline/actions/workflows/tests.yml/badge.svg)](https://github.com/Moviw/codex-statusline/actions/workflows/tests.yml)
-[![PyPI](https://img.shields.io/pypi/v/codex-statusline)](https://pypi.org/project/codex-statusline/)
+[![PyPI](https://img.shields.io/pypi/v/codex-statusline?label=PyPI)](https://pypi.org/project/codex-statusline/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 English | [简体中文](README.zh-CN.md)
 
 A status bar for [OpenAI Codex CLI](https://github.com/openai/codex). It shows context used, 5-hour and weekly quota left with reset times, and session tokens. You keep running `codex` exactly as before.
 
-![codex-statusline demo](docs/preview.svg)
+![codex-statusline](docs/preview.svg)
 
 ```text
 CTX USED ███░░░░░ 35% | 5h ████████░░ 78% 5:41pm | week ████░░░░░░ 39% Fri 3:41pm | tok 1.2M
@@ -53,7 +53,7 @@ codex resume --last
 codex exec 'task'         # non-interactive: passed straight through, no bar
 
 codex-statusline doctor   # check versions and dependencies
-codex-statusline preview --demo --width 80   # try it without launching Codex
+codex-statusline preview --width 80   # try it without launching Codex
 codex-statusline uninstall
 ```
 

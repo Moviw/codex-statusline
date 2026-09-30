@@ -51,7 +51,6 @@ def main():
     p.add_argument("--theme", choices=["dark", "light"])
     p.add_argument("--ascii", action="store_true")
     p.add_argument("--tmux", action="store_true", help="emit tmux style syntax, not ANSI")
-    p.add_argument("--demo", action="store_true", help="show explicitly synthetic example data")
     ns = parser.parse_args(args)
     try:
         if ns.action in ("install", "uninstall"):
@@ -77,31 +76,13 @@ def main():
             cfg = load_config()
             now = time.time()
             state = {
-                "model": "Codex",
-                "cwd": os.getcwd(),
-                "context_used": None,
-                "quotas": {},
+                "context_used": 35,
+                "tokens": 1_234_567,
+                "quotas": {
+                    "5h": {"remaining": 78, "reset_at": now + 7200, "observed_at": now},
+                    "weekly": {"remaining": 39, "reset_at": now + 172800, "observed_at": now},
+                },
             }
-            if ns.demo:
-                state.update(
-                    model="DEMO GPT-6",
-                    context_used=35,
-                    cwd="~/project",
-                    branch="main",
-                    tokens=1_234_567,
-                    quotas={
-                        "5h": {
-                            "remaining": 78,
-                            "reset_at": now + 7200,
-                            "observed_at": now,
-                        },
-                        "weekly": {
-                            "remaining": 39,
-                            "reset_at": now + 172800,
-                            "observed_at": now,
-                        },
-                    },
-                )
             print(
                 render(
                     state,

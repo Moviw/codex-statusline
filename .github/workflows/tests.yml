@@ -36,4 +36,4 @@ jobs:
       - run: uvx ruff format --check . && uvx ruff check .
       - run: uv build
       - name: Smoke-test the wheel as a uv tool
-        run: uv tool install --python 3.11 dist/*.whl && codex-statusline --version && codex-statusline preview --demo --width 80
+        run: uv tool install --python 3.11 dist/*.whl && codex-statusline --version && codex-statusline preview --width 80
