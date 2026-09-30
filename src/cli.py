@@ -48,7 +48,7 @@ def main():
     sub.add_parser("doctor")
     p = sub.add_parser("preview")
     p.add_argument("--width", type=int, default=120)
-    p.add_argument("--theme", choices=["dark", "light"])
+    p.add_argument("--theme", choices=["auto", "dark", "light"])
     p.add_argument("--ascii", action="store_true")
     p.add_argument("--tmux", action="store_true", help="emit tmux style syntax, not ANSI")
     ns = parser.parse_args(args)

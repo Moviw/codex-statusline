@@ -14,9 +14,20 @@ from pathlib import Path
 from typing import Any
 
 DEFAULT_SEGMENTS = ["ctx", "5h", "week", "tokens"]
+# tmux status-style per theme; "auto" keeps the terminal's own colors.
+THEMES = {
+    "auto": "bg=default,fg=default",
+    "dark": "bg=#202431,fg=#d5dceb",
+    "light": "bg=#f1f3f7,fg=#253047",
+}
+_PALETTES = {  # mid-tone colors for auto stay readable on white and black backgrounds
+    "auto": {"accent": "colour33", "warning": "colour172", "critical": "colour160"},
+    "dark": {"accent": "colour75", "warning": "colour220", "critical": "colour196"},
+    "light": {"accent": "colour25", "warning": "colour130", "critical": "colour160"},
+}
 _CONFIG_DEFAULTS = {
     "segments": DEFAULT_SEGMENTS,
-    "theme": "dark",
+    "theme": "auto",
     "ascii": False,
     "warn_at": 20,
     "crit_at": 5,
@@ -40,7 +51,7 @@ def load_config(path: str | os.PathLike | None = None) -> dict[str, Any]:
         "segments": lambda v: (
             isinstance(v, list) and v and all(x in ("ctx", "5h", "week", "tokens") for x in v)
         ),
-        "theme": lambda v: v in ("dark", "light"),
+        "theme": lambda v: v in THEMES,
         "ascii": lambda v: isinstance(v, bool),
         "warn_at": lambda v: isinstance(v, int) and not isinstance(v, bool) and 0 <= v <= 100,
         "crit_at": lambda v: isinstance(v, int) and not isinstance(v, bool) and 0 <= v <= 100,
@@ -54,7 +65,7 @@ def load_config(path: str | os.PathLike | None = None) -> dict[str, Any]:
                 file=sys.stderr,
             )
     # Existing env switches still win, so older installs behave the same.
-    if os.environ.get("CODEX_STATUSLINE_THEME") in ("dark", "light"):
+    if os.environ.get("CODEX_STATUSLINE_THEME") in THEMES:
         config["theme"] = os.environ["CODEX_STATUSLINE_THEME"]
     if os.environ.get("CODEX_STATUSLINE_ASCII") == "1":
         config["ascii"] = True
@@ -149,7 +160,7 @@ def _reset(reset_at: Any, now: float, weekly: bool = False) -> str:
     if stamp is None:
         return "--"
     if stamp <= now:
-        return "refresh"
+        return ""  # window already reset; next reset is unknown until Codex reports again
     try:
         moment = datetime.fromtimestamp(stamp)
         time = moment.strftime("%I:%M%p").lstrip("0").lower()
@@ -164,13 +175,13 @@ def _quota_values(
     label = "week" if weekly else "5h"
     if not isinstance(data, dict):
         return f"{label} --", f"{label} --", None
-    remaining = _percent(data.get("remaining"))
+    # Past its reset time the window has rolled over: nothing seen since means full quota.
+    remaining = 100 if _is_stale(data, now) else _percent(data.get("remaining"))
     left = "--" if remaining is None else f"{remaining}%"
     reset = _reset(data.get("reset_at"), now, weekly)
-    # Expiration never replenishes the displayed provider snapshot.
-    compact = f"{label} {left}" + (" refresh" if reset == "refresh" else "")
+    compact = f"{label} {left}"
     bar = _bar(remaining, 10, ascii_only, left=True)
-    detail = f"{label} {bar} {left} {reset}"
+    detail = f"{label} {bar} {left} {reset}".rstrip()
     return detail, compact, remaining
 
 
@@ -205,15 +216,7 @@ def _paint(text: str, theme: str, role: str, tmux: bool) -> str:
     """Use only fixed, renderer-owned tmux style directives."""
     if not tmux:
         return text
-    light = theme == "light"
-    if role == "tile":
-        fg, bg = ("colour232", "colour250") if light else ("colour255", "colour237")
-        return f"#[fg={fg},bg={bg},bold]{text}#[default]"
-    palette = {
-        "accent": "colour25" if light else "colour75",
-        "warning": "colour130" if light else "colour220",
-        "critical": "colour160" if light else "colour196",
-    }
+    palette = _PALETTES.get(theme, _PALETTES["dark"])
     return f"#[fg={palette.get(role, palette['accent'])}]{text}#[default]"
 
 
@@ -240,7 +243,7 @@ def render(
     now = _number(state.get("now"))
     if now is None:
         now = datetime.now().timestamp()
-    theme = "light" if theme == "light" else "dark"
+    theme = theme if theme in THEMES else "dark"
 
     context = state.get("context_used")
     context_text = f"  CTX USED {_bar(context, 8, ascii_only)} {_pct(context)}"
@@ -252,7 +255,7 @@ def render(
     tok = _tokens(state.get("tokens"))
     sep = " | "
     # Quotas are remaining percentages. Keep expired snapshots visibly stale.
-    # Omit each segment as a whole rather than clipping off its refresh marker.
+    # Omit each segment as a whole rather than clipping it to a fragment.
     known = {  # name: (detail, compact, role)
         "ctx": (context_text, context_compact, _context_role(context)),
         "5h": (q5detail, q5compact, _quota_role(q5value, warn_at, crit_at)),

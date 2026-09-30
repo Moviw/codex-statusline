@@ -21,7 +21,7 @@ CTX USED ███░░░░░ 35% | 5h ████████░░ 78% 5:
 - **No more `/status` interruptions.** Quota and context sit in view while you work.
 - **Local only.** Never reads `auth.json`, never calls a quota API, never makes extra model calls.
 - **Zero new habits.** Keep typing `codex`. `codex exec`, pipes, and scripts pass straight through to the official binary.
-- **Honest numbers.** Unknown shows as `--` and stale quota shows as `refresh`. A missing value is never passed off as 0% or 100%.
+- **Always current.** Quota is account-wide, so the freshest reading from any of your local Codex sessions is shown, and the bar flips to 100% the moment a window resets. Unknown shows as `--`, never a made-up number.
 - **Fits any width.** Segments collapse, then drop, as the terminal narrows.
 
 ## Install
@@ -65,7 +65,7 @@ Optional. Create `~/.config/codex-statusline/config.toml`:
 
 ```toml
 segments = ["ctx", "5h", "week", "tokens"]  # pick and reorder
-theme = "dark"     # dark | light
+theme = "auto"     # auto (follow terminal) | dark | light
 ascii = false      # true for terminals without block glyphs
 warn_at = 20       # quota remaining % that turns yellow
 crit_at = 5        # quota remaining % that turns red
@@ -75,7 +75,7 @@ Invalid values are reported and fall back to defaults.
 
 ## How it works
 
-`codex` becomes a small shell function that starts the official CLI inside a private tmux session and draws the bar at the bottom. Data comes from two places only: the terminal title Codex already emits (model, context, thread id), and the rollout log of *this* session, which a SessionStart hook pins by exact path. The official binary is not replaced or patched, and your tmux config is not touched. Details: [docs/architecture.md](docs/architecture.md).
+`codex` becomes a small shell function that starts the official CLI inside a private tmux session and draws the bar at the bottom. Data comes from two places only: the terminal title Codex already emits (model, context, thread id), and local Codex session logs: this session's log (pinned by exact path through a SessionStart hook) for context and tokens, plus the most recent local logs for account-wide quota. Only quota and token counters are read, never chat text. The official binary is not replaced or patched, and your tmux config is not touched. Details: [docs/architecture.md](docs/architecture.md).
 
 ## FAQ
 

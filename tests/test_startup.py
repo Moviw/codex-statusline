@@ -26,6 +26,16 @@ class PlaceholderTests(unittest.TestCase):
                 for text in ("status unknown", "binding pending", "0%", "100%"):
                     self.assertNotIn(text, result)
 
+    def test_placeholder_follows_config_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            conf = Path(tmp) / "codex-statusline" / "config.toml"
+            conf.parent.mkdir()
+            conf.write_text('segments = ["week"]\n')
+            with patch.dict(os.environ, {"XDG_CONFIG_HOME": tmp}):
+                result = placeholder(160)
+        self.assertIn("week", result)
+        self.assertNotIn("CTX", result)
+
     def test_width_and_ascii(self):
         with patch.dict(os.environ, {"CODEX_STATUSLINE_ASCII": "1"}):
             for width in range(1, 241):

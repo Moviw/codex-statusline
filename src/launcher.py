@@ -158,18 +158,14 @@ def branch(cwd):
 
 def placeholder(width=80):
     """Use the normal layout before telemetry arrives or while it is unavailable."""
-    from .render import render
+    from .render import load_config, render
 
     try:
         width = max(1, int(width))
     except (TypeError, ValueError):
         width = 80
-    return render(
-        {},
-        width,
-        theme=os.environ.get("CODEX_STATUSLINE_THEME", "dark"),
-        ascii_only=os.environ.get("CODEX_STATUSLINE_ASCII") == "1",
-    )
+    cfg = load_config()
+    return render({}, width, theme=cfg["theme"], ascii_only=cfg["ascii"], segments=cfg["segments"])
 
 
 def launch(args):
@@ -212,7 +208,6 @@ def launch(args):
         'set -g status-right ""\n'
         'set -g status-format "#{status-left}"\n'
         'set -g status-left ""\n'
-        'set -g status-style "bg=#202431,fg=#d5dceb"\n'
         "set -g allow-rename off\n"
         "set -g set-titles off\n"
         "set -g mouse off\n"
@@ -224,10 +219,11 @@ def launch(args):
         stream.write(
             'set -g status-left "' + placeholder(shutil.get_terminal_size((80, 24)).columns) + '"\n'
         )
+    from .render import THEMES, load_config
+
+    with conf.open("a") as stream:
+        stream.write(f'set -g status-style "{THEMES[load_config()["theme"]]}"\n')
     base = [tmux, "-S", str(root / "tmux.sock"), "-f", str(conf)]
-    if os.environ.get("CODEX_STATUSLINE_THEME") == "light":
-        with conf.open("a") as stream:
-            stream.write('set -g status-style "bg=#f1f3f7,fg=#253047"\n')
     env = dict(os.environ)
     env.pop("TMUX", None)
     env.pop("TMUX_PANE", None)
@@ -240,11 +236,13 @@ def launch(args):
         )
 
     def monitor():
-        from .data import LogReader, parse_title
+        from .data import LogReader, merge_quotas, newest_quotas, parse_title
         from .render import load_config, render
 
         cfg = load_config()
         reader = LogReader()
+        codex_home = Path(os.environ.get("CODEX_HOME") or Path.home() / ".codex")
+        sessions, readers, others, scan_at = codex_home / "sessions", {}, {}, 0.0
         last_branch, branch_at = None, 0
         last_line = None
         while not stop.is_set():
@@ -265,6 +263,8 @@ def launch(args):
                 state = parse_title(title)
                 state["cwd"] = config["cwd"]
                 state["quotas"] = {}
+                if time.monotonic() - scan_at > 10:
+                    others, scan_at = newest_quotas(sessions, readers), time.monotonic()
                 try:
                     bindings = json.loads((root / "bindings.json").read_text())
                     bound = binding_for(bindings, state.get("session_hint"), token)
@@ -277,6 +277,7 @@ def launch(args):
                         snapshot.get("quotas", {}),
                         snapshot.get("tokens"),
                     )
+                state["quotas"] = merge_quotas(state["quotas"], others)
                 if time.monotonic() - branch_at > 3:
                     last_branch, branch_at = branch(state["cwd"]), time.monotonic()
                 state["branch"] = last_branch

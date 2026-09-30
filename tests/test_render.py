@@ -56,7 +56,7 @@ class RenderTests(unittest.TestCase):
         )
         self.assertIn("--", result)
 
-    def test_stale_reset_marker_survives_compaction(self):
+    def test_expired_window_shows_full_quota_without_reset_time(self):
         state = {
             "model": "M",
             "context_used": 40,
@@ -67,17 +67,11 @@ class RenderTests(unittest.TestCase):
             },
         }
         full = render(state, 200, tmux=False)
-        self.assertIn("12%", full)
-        self.assertIn("5h", full)
-        self.assertIn("refresh", full)
-        self.assertNotIn("100%", full)
-        # At every width where the entire 5h quota survives, stale is explicit;
-        # it is omitted as a whole rather than clipped to an ambiguous fragment.
+        self.assertIn("5h ██████████ 100% |", full)
+        self.assertNotIn("12%", full)
+        self.assertNotIn("refresh", full)
         for width in range(1, 150):
-            line = render(state, width, tmux=False)
-            if "5h" in line:
-                self.assertIn("12%", line)
-                self.assertIn("refresh", line)
+            self.assertNotIn("12%", render(state, width, tmux=False))
 
     def test_context_and_quota_direction_in_compact_layout(self):
         state = {
@@ -186,6 +180,12 @@ class RenderTests(unittest.TestCase):
         self.assertNotIn("#[", result)
         self.assertNotIn("\x1b[", result)
 
+    def test_auto_theme_uses_terminal_background(self):
+        from src.render import THEMES
+
+        self.assertEqual(THEMES["auto"], "bg=default,fg=default")
+        self.assertIn("#[fg=colour33]", render(self.state, 240, theme="auto"))
+
     def test_theme_and_ascii(self):
         self.assertNotEqual(
             render(self.state, 80, theme="dark"), render(self.state, 80, theme="light")
@@ -220,10 +220,10 @@ class ConfigTests(unittest.TestCase):
             cfg = load_config(path)
             self.assertEqual(
                 (cfg["segments"], cfg["theme"], cfg["warn_at"]),
-                (["week", "ctx"], "dark", 30),
+                (["week", "ctx"], "auto", 30),
             )
             path.write_text("not = [toml")
-            self.assertEqual(load_config(path)["theme"], "dark")
+            self.assertEqual(load_config(path)["theme"], "auto")
 
 
 if __name__ == "__main__":

@@ -11,6 +11,7 @@ import math
 import os
 import re
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 _SESSION_HINT = re.compile(
@@ -154,12 +155,13 @@ class LogReader:
         if not isinstance(rate_limits, dict):
             return
 
-        for key, label, expected_window in (
-            ("primary", "5h", 300),
-            ("secondary", "weekly", 10080),
-        ):
+        # Slots vary by plan (e.g. Plus may carry only the weekly window in "primary"),
+        # so identify each quota by its window length, not by its key.
+        windows = {300: "5h", 10080: "weekly"}
+        for key in ("primary", "secondary"):
             quota = rate_limits.get(key)
-            if not isinstance(quota, dict) or quota.get("window_minutes") != expected_window:
+            label = windows.get(quota.get("window_minutes")) if isinstance(quota, dict) else None
+            if label is None:
                 continue
             used = quota.get("used_percent")
             if isinstance(used, bool) or not isinstance(used, (int, float)):
@@ -267,3 +269,33 @@ class LogReader:
             "quotas": {name: dict(value) for name, value in self._quotas.items()},
             "tokens": self._tokens,
         }
+
+
+def merge_quotas(*snapshots: dict[str, Any]) -> dict[str, Any]:
+    """Quotas are account-wide: per window, keep the most recently observed snapshot."""
+    merged: dict[str, Any] = {}
+    for snapshot in snapshots:
+        for label, quota in (snapshot or {}).items():
+            seen = quota.get("observed_at") if isinstance(quota, dict) else None
+            if seen is None:
+                continue
+            if label not in merged or seen > merged[label]["observed_at"]:
+                merged[label] = quota
+    return merged
+
+
+def newest_quotas(sessions: Path, readers: dict[str, LogReader], limit: int = 3) -> dict[str, Any]:
+    """Freshest quotas across the most recently written local session logs."""
+    found = []
+    try:
+        for path in sessions.glob("*/*/*/*.jsonl"):
+            try:
+                found.append((path.stat().st_mtime, str(path)))
+            except OSError:
+                continue
+    except OSError:
+        return {}
+    recent = [path for _, path in sorted(found, reverse=True)[:limit]]
+    for stale in set(readers) - set(recent):
+        del readers[stale]
+    return merge_quotas(*(readers.setdefault(p, LogReader()).update(p)["quotas"] for p in recent))

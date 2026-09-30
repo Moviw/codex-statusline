@@ -6,6 +6,16 @@ set -eu
 say() { printf 'codex-statusline: %s\n' "$*"; }
 
 if ! command -v tmux >/dev/null 2>&1; then
+    # Offer brew on macOS (no sudo needed); never escalate to root on Linux.
+    if [ "$(uname)" = Darwin ] && command -v brew >/dev/null 2>&1 && [ -r /dev/tty ]; then
+        printf 'codex-statusline: tmux is required. Install it with Homebrew now? [Y/n] '
+        read -r answer </dev/tty || answer=n
+        case "$answer" in
+            ''|y|Y|yes) brew install tmux ;;
+        esac
+    fi
+fi
+if ! command -v tmux >/dev/null 2>&1; then
     say 'tmux is required. Install it first:'
     say '  macOS:          brew install tmux'
     say '  Debian/Ubuntu:  sudo apt install tmux'

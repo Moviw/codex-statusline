@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from src.data import LogReader, parse_title
+from src.data import LogReader, merge_quotas, newest_quotas, parse_title
 
 
 def token_event(
@@ -119,6 +119,32 @@ class LogReaderTests(unittest.TestCase):
             reader = LogReader()
             self.assertEqual(reader.update(str(first))["tokens"], 1_500_000.0)
             self.assertIsNone(reader.update(str(second))["tokens"])
+
+    def test_weekly_only_plan_in_primary_slot(self):
+        # Plus plans may report only the weekly window, placed in "primary".
+        event = token_event(1000, primary_used=11, primary_window=10080)
+        event["payload"]["info"]["rate_limits"]["secondary"] = None
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "s.jsonl"
+            path.write_bytes(line(event))
+            quotas = LogReader().update(str(path))["quotas"]
+        self.assertEqual(quotas["weekly"]["remaining"], 89.0)
+        self.assertIsNone(quotas["5h"]["remaining"])
+
+    def test_newest_quota_across_sessions_wins(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            day = Path(tmp) / "2026" / "09" / "30"
+            day.mkdir(parents=True)
+            (day / "old.jsonl").write_bytes(line(token_event(1000, 80, 10)))
+            (day / "new.jsonl").write_bytes(line(token_event(2000, 5, 20)))
+            others = newest_quotas(Path(tmp), {})
+        self.assertEqual(others["5h"]["remaining"], 95.0)
+        self.assertEqual(others["weekly"]["observed_at"], 2000.0)
+        bound = {"5h": {"remaining": 50.0, "observed_at": 3000.0}, "weekly": {"observed_at": None}}
+        merged = merge_quotas(bound, others)
+        self.assertEqual(merged["5h"]["remaining"], 50.0)
+        self.assertEqual(merged["weekly"]["remaining"], 80.0)
+        self.assertEqual(newest_quotas(Path(tmp) / "missing", {}), {})
 
     def test_quota_only_payload_can_have_null_info(self):
         with tempfile.TemporaryDirectory() as tmp:

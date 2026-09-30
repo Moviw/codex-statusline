@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.1
+
+- Expired quota windows show 100% the moment they reset, instead of the old value with `refresh`.
+- Quota is taken from the freshest reading across recent local Codex sessions, so it shows up before the first turn too.
+- Fix plans that report only the weekly window (e.g. Plus) showing `5h -- | week --`.
+- New default theme `auto`: the bar follows the terminal's own background (light or dark).
+- Fix `theme = "light"` in config.toml changing text colors but keeping the dark bar.
+- `install.sh` offers to install tmux with Homebrew on macOS.
+
 ## 0.1.0
 
 First public release.
