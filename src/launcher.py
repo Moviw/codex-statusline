@@ -158,6 +158,7 @@ def branch(cwd):
 
 def placeholder(width=80):
     """Use the normal layout before telemetry arrives or while it is unavailable."""
+    from .data import newest_quotas, sessions_dir
     from .render import load_config, render
 
     try:
@@ -165,7 +166,11 @@ def placeholder(width=80):
     except (TypeError, ValueError):
         width = 80
     cfg = load_config()
-    return render({}, width, theme=cfg["theme"], ascii_only=cfg["ascii"], segments=cfg["segments"])
+    # Quota is account-wide, so even the very first frame can show it.
+    state = {"quotas": newest_quotas(sessions_dir(), {})}
+    return render(
+        state, width, theme=cfg["theme"], ascii_only=cfg["ascii"], segments=cfg["segments"]
+    )
 
 
 def launch(args):
@@ -236,7 +241,7 @@ def launch(args):
         )
 
     def monitor():
-        from .data import LogReader, merge_quotas, newest_quotas, parse_title
+        from .data import LogReader, merge_quotas, newest_quotas, parse_title, sessions_dir
         from .render import load_config, render
 
         cfg = load_config()
@@ -248,8 +253,7 @@ def launch(args):
             threading.Thread(
                 target=lambda: latest.update(version=newer_version()), daemon=True
             ).start()
-        codex_home = Path(os.environ.get("CODEX_HOME") or Path.home() / ".codex")
-        sessions, readers, others, scan_at = codex_home / "sessions", {}, {}, 0.0
+        sessions, readers, others, scan_at = sessions_dir(), {}, {}, 0.0
         last_branch, branch_at = None, 0
         last_line = None
         while not stop.is_set():

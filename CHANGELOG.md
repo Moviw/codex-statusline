@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.3
+
+- Quota appears on the very first frame when `codex` starts, read from your local Codex sessions.
+- Quota lookup looks past recent sessions that were opened without any turn.
+
 ## 0.1.2
 
 - Plans that report only one quota window (e.g. weekly only) now show just that window instead of a permanent `5h --`.

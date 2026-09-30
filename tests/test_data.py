@@ -1,4 +1,5 @@
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -137,6 +138,9 @@ class LogReaderTests(unittest.TestCase):
             day.mkdir(parents=True)
             (day / "old.jsonl").write_bytes(line(token_event(1000, 80, 10)))
             (day / "new.jsonl").write_bytes(line(token_event(2000, 5, 20)))
+            (day / "empty.jsonl").write_bytes(b"")  # a session opened without any turn
+            for name, mtime in (("old", 100), ("new", 200), ("empty", 300)):
+                os.utime(day / f"{name}.jsonl", (mtime, mtime))
             others = newest_quotas(Path(tmp), {})
         self.assertEqual(others["5h"]["remaining"], 95.0)
         self.assertEqual(others["weekly"]["observed_at"], 2000.0)

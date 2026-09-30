@@ -284,8 +284,15 @@ def merge_quotas(*snapshots: dict[str, Any]) -> dict[str, Any]:
     return merged
 
 
-def newest_quotas(sessions: Path, readers: dict[str, LogReader], limit: int = 3) -> dict[str, Any]:
-    """Freshest quotas across the most recently written local session logs."""
+def sessions_dir() -> Path:
+    return Path(os.environ.get("CODEX_HOME") or Path.home() / ".codex") / "sessions"
+
+
+def newest_quotas(sessions: Path, readers: dict[str, LogReader], limit: int = 10) -> dict[str, Any]:
+    """Freshest quotas from local session logs, newest first, stopping once both windows are seen.
+
+    Sessions opened without a single turn carry no quota, so look past them.
+    """
     found = []
     try:
         for path in sessions.glob("*/*/*/*.jsonl"):
@@ -295,7 +302,13 @@ def newest_quotas(sessions: Path, readers: dict[str, LogReader], limit: int = 3)
                 continue
     except OSError:
         return {}
-    recent = [path for _, path in sorted(found, reverse=True)[:limit]]
-    for stale in set(readers) - set(recent):
+    merged: dict[str, Any] = {}
+    scanned = []
+    for _, path in sorted(found, reverse=True)[:limit]:
+        scanned.append(path)
+        merged = merge_quotas(merged, readers.setdefault(path, LogReader()).update(path)["quotas"])
+        if {"5h", "weekly"} <= merged.keys():
+            break
+    for stale in set(readers) - set(scanned):
         del readers[stale]
-    return merge_quotas(*(readers.setdefault(p, LogReader()).update(p)["quotas"] for p in recent))
+    return merged

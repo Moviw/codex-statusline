@@ -18,13 +18,35 @@ from src.render import visible_width
 
 class PlaceholderTests(unittest.TestCase):
     def test_no_fabricated_values(self):
-        for theme in ("dark", "light"):
-            with patch.dict(os.environ, {"CODEX_STATUSLINE_THEME": theme}):
-                result = placeholder(160)
+        with tempfile.TemporaryDirectory() as home:  # no local sessions at all
+            for theme in ("dark", "light"):
+                env = {"CODEX_STATUSLINE_THEME": theme, "CODEX_HOME": home}
+                with patch.dict(os.environ, env):
+                    result = placeholder(160)
                 for text in ("CTX USED", "5h", "week", "--"):
                     self.assertIn(text, result)
                 for text in ("status unknown", "binding pending", "0%", "100%"):
                     self.assertNotIn(text, result)
+
+    def test_first_frame_shows_quota_from_local_sessions(self):
+        with tempfile.TemporaryDirectory() as home:
+            day = Path(home) / "sessions" / "2026" / "09" / "30"
+            day.mkdir(parents=True)
+            now = time.time()
+            limits = {
+                "primary": {"used_percent": 30, "window_minutes": 300, "resets_at": now + 3600},
+                "secondary": {"used_percent": 60, "window_minutes": 10080, "resets_at": now + 9e4},
+            }
+            event = {
+                "type": "event_msg",
+                "timestamp": now,
+                "payload": {"type": "token_count", "info": {"rate_limits": limits}},
+            }
+            (day / "r.jsonl").write_text(json.dumps(event) + "\n")
+            with patch.dict(os.environ, {"CODEX_HOME": home}):
+                result = placeholder(160)
+        self.assertIn("70%", result)
+        self.assertIn("40%", result)
 
     def test_placeholder_follows_config_file(self):
         with tempfile.TemporaryDirectory() as tmp:
