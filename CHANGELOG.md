@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.2
+
+- Plans that report only one quota window (e.g. weekly only) now show just that window instead of a permanent `5h --`.
+
 ## 0.1.1
 
 - Expired quota windows show 100% the moment they reset, instead of the old value with `refresh`.

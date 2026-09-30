@@ -73,6 +73,15 @@ class RenderTests(unittest.TestCase):
         for width in range(1, 150):
             self.assertNotIn("12%", render(state, width, tmux=False))
 
+    def test_plan_without_5h_window_hides_that_segment(self):
+        weekly = {"remaining": 31, "reset_at": 5000, "observed_at": 900}
+        only_week = render({"now": 1000, "quotas": {"weekly": weekly}}, 200, tmux=False)
+        self.assertNotIn("5h", only_week)
+        self.assertIn("week", only_week)
+        nothing_yet = render({"now": 1000, "quotas": {}}, 200, tmux=False)
+        self.assertIn("5h --", nothing_yet)
+        self.assertIn("week --", nothing_yet)
+
     def test_context_and_quota_direction_in_compact_layout(self):
         state = {
             "model": "M",

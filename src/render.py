@@ -256,7 +256,7 @@ def render(
     qwdetail, qwcompact, qwvalue = _quota_values(quotas.get("weekly"), now, True, ascii_only)
     tok = _tokens(state.get("tokens"))
     sep = " | "
-    # Quotas are remaining percentages. Keep expired snapshots visibly stale.
+    # Quotas are remaining percentages; expired windows read as full (see _quota_values).
     # Omit each segment as a whole rather than clipping it to a fragment.
     known = {  # name: (detail, compact, role)
         "ctx": (context_text, context_compact, _context_role(context)),
@@ -264,6 +264,9 @@ def render(
         "week": (qwdetail, qwcompact, _quota_role(qwvalue, warn_at, crit_at)),
         "tokens": (tok, tok, "accent"),
     }
+    # Plans without a 5h (or weekly) limit report only the other window: hide the missing one.
+    if (q5value is None) != (qwvalue is None):
+        del known["5h" if q5value is None else "week"]
     parts = [known[name] for name in (segments or DEFAULT_SEGMENTS) if name in known] or [
         known["ctx"]
     ]
