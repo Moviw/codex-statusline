@@ -241,6 +241,13 @@ def launch(args):
 
         cfg = load_config()
         reader = LogReader()
+        latest = {}
+        if cfg["update_check"]:
+            from .update import newer_version
+
+            threading.Thread(
+                target=lambda: latest.update(version=newer_version()), daemon=True
+            ).start()
         codex_home = Path(os.environ.get("CODEX_HOME") or Path.home() / ".codex")
         sessions, readers, others, scan_at = codex_home / "sessions", {}, {}, 0.0
         last_branch, branch_at = None, 0
@@ -278,6 +285,7 @@ def launch(args):
                         snapshot.get("tokens"),
                     )
                 state["quotas"] = merge_quotas(state["quotas"], others)
+                state["update"] = latest.get("version")
                 if time.monotonic() - branch_at > 3:
                     last_branch, branch_at = branch(state["cwd"]), time.monotonic()
                 state["branch"] = last_branch

@@ -38,4 +38,4 @@ Shell edits are tracked as whole marked blocks. Uninstall removes only blocks an
 
 When installed with uv/pipx, hooks and shell functions call the tool's `codex-statusline` shim, which survives upgrades; a git checkout calls `python src/entry.py` instead.
 
-No binary patching, no network quota adapter.
+No binary patching, no network quota adapter. The only network access is one unauthenticated GET to `pypi.org/pypi/codex-statusline/json` per launch (2 s timeout, background thread, failures ignored), disabled by `update_check = false`.

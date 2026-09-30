@@ -19,7 +19,7 @@ CTX USED ███░░░░░ 35% | 5h ████████░░ 78% 5:
 ## 为什么用它
 
 - **不用再敲 `/status`**：额度和 context 一直在眼前。
-- **纯本地**：不读 `auth.json`、不访问额度 API、不额外调用模型。
+- **数据只在本地**：不读 `auth.json`、不访问额度 API、不额外调用模型。唯一的联网请求是启动 `codex` 时向 PyPI 查一次最新版本号（`update_check = false` 可关闭）。
 - **零学习成本**：继续敲 `codex`；`codex exec`、管道、脚本原样交给官方 CLI。
 - **始终最新**：额度是整个账号共用的，会取本机所有 Codex 会话里最新的读数；窗口一到重置时间就立刻显示 100%。未知显示 `--`，不会编造数字。
 - **窄屏自适应**：终端变窄时先压缩、再逐段隐藏。
@@ -52,6 +52,7 @@ codex                     # 照常使用，多了底栏
 codex resume --last
 codex exec 'task'         # 非交互命令直接透传，不显示底栏
 
+codex-statusline update   # 升级（自动识别安装方式）
 codex-statusline doctor   # 检查版本与依赖
 codex-statusline preview --width 80   # 不启动 Codex 预览效果
 codex-statusline uninstall
@@ -69,6 +70,7 @@ theme = "auto"     # auto（跟随终端）| dark | light
 ascii = false      # 终端不支持方块字符时设为 true
 warn_at = 20       # 额度剩余低于该百分比变黄
 crit_at = 5        # 额度剩余低于该百分比变红
+update_check = true  # 有新版本时在底栏显示 "↑ 新版本号"
 ```
 
 非法值会提示并回退到默认值。

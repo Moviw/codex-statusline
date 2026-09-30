@@ -8,6 +8,7 @@
 - New default theme `auto`: the bar follows the terminal's own background (light or dark).
 - Fix `theme = "light"` in config.toml changing text colors but keeping the dark bar.
 - `install.sh` offers to install tmux with Homebrew on macOS.
+- Update notice: each `codex` launch checks PyPI in the background; the bar shows `↑ x.y.z run: codex-statusline update`. New `codex-statusline update` upgrades via uv, pipx, pip, or git, whichever installed it. Opt out with `update_check = false`.
 
 ## 0.1.0
 

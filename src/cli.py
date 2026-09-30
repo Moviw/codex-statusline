@@ -46,6 +46,7 @@ def main():
         )
         s.add_argument("--dry-run", action="store_true")
     sub.add_parser("doctor")
+    sub.add_parser("update", help="upgrade codex-statusline the way it was installed")
     p = sub.add_parser("preview")
     p.add_argument("--width", type=int, default=120)
     p.add_argument("--theme", choices=["auto", "dark", "light"])
@@ -57,6 +58,10 @@ def main():
             from .manage import installation
 
             return installation(ns, ns.action == "uninstall")
+        if ns.action == "update":
+            from .update import update
+
+            return update()
         if ns.action == "doctor":
             path = official()
             data = {

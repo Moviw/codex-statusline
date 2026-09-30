@@ -19,7 +19,7 @@ CTX USED ███░░░░░ 35% | 5h ████████░░ 78% 5:
 ## Why
 
 - **No more `/status` interruptions.** Quota and context sit in view while you work.
-- **Local only.** Never reads `auth.json`, never calls a quota API, never makes extra model calls.
+- **Local data only.** Never reads `auth.json`, never calls a quota API, never makes extra model calls. The one network request is a version check against PyPI when `codex` starts (turn off with `update_check = false`).
 - **Zero new habits.** Keep typing `codex`. `codex exec`, pipes, and scripts pass straight through to the official binary.
 - **Always current.** Quota is account-wide, so the freshest reading from any of your local Codex sessions is shown, and the bar flips to 100% the moment a window resets. Unknown shows as `--`, never a made-up number.
 - **Fits any width.** Segments collapse, then drop, as the terminal narrows.
@@ -52,6 +52,7 @@ codex                     # same as always, now with a status bar
 codex resume --last
 codex exec 'task'         # non-interactive: passed straight through, no bar
 
+codex-statusline update   # upgrade, whichever way you installed it
 codex-statusline doctor   # check versions and dependencies
 codex-statusline preview --width 80   # try it without launching Codex
 codex-statusline uninstall
@@ -69,6 +70,7 @@ theme = "auto"     # auto (follow terminal) | dark | light
 ascii = false      # true for terminals without block glyphs
 warn_at = 20       # quota remaining % that turns yellow
 crit_at = 5        # quota remaining % that turns red
+update_check = true  # show "↑ new version" in the bar when one is out
 ```
 
 Invalid values are reported and fall back to defaults.

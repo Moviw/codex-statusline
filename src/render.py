@@ -26,6 +26,7 @@ _PALETTES = {  # mid-tone colors for auto stay readable on white and black backg
     "light": {"accent": "colour25", "warning": "colour130", "critical": "colour160"},
 }
 _CONFIG_DEFAULTS = {
+    "update_check": True,
     "segments": DEFAULT_SEGMENTS,
     "theme": "auto",
     "ascii": False,
@@ -53,6 +54,7 @@ def load_config(path: str | os.PathLike | None = None) -> dict[str, Any]:
         ),
         "theme": lambda v: v in THEMES,
         "ascii": lambda v: isinstance(v, bool),
+        "update_check": lambda v: isinstance(v, bool),
         "warn_at": lambda v: isinstance(v, int) and not isinstance(v, bool) and 0 <= v <= 100,
         "crit_at": lambda v: isinstance(v, int) and not isinstance(v, bool) and 0 <= v <= 100,
     }
@@ -265,15 +267,28 @@ def render(
     parts = [known[name] for name in (segments or DEFAULT_SEGMENTS) if name in known] or [
         known["ctx"]
     ]
+    update = state.get("update")
+    hint = None
+    if isinstance(update, str) and re.fullmatch(r"\d+(\.\d+)*", update):
+        arrow = "^" if ascii_only else "↑"
+        hint = (f"{arrow} {update} run: codex-statusline update", f"{arrow}{update}", "warning")
     head, rest = parts[0], parts[1:]
-    # Widest first: all detail, compact head, all compact, then drop trailing segments.
-    tiers: list[list[tuple[str, str]]] = [
+    compact_head = (head[1], head[2])
+    # Widest first: all detail, compact head, all compact, then drop segments.
+    tiers: list[list[tuple[str, str]]] = []
+    if hint:  # the update hint goes first whenever the bar gets tight
+        tiers += [
+            [(p[0], p[2]) for p in [*parts, hint]],
+            [compact_head] + [(p[0], p[2]) for p in rest] + [(hint[0], hint[2])],
+            [compact_head] + [(p[1], p[2]) for p in [*rest, hint]],
+        ]
+    tiers += [
         [(p[0], p[2]) for p in parts],
-        [(head[1], head[2])] + [(p[0], p[2]) for p in rest],
+        [compact_head] + [(p[0], p[2]) for p in rest],
     ]
     for size in range(len(rest), -1, -1):
         for combo in combinations(rest, size):
-            tiers.append([(head[1], head[2])] + [(p[1], p[2]) for p in combo])
+            tiers.append([compact_head] + [(p[1], p[2]) for p in combo])
     chosen = tiers[-1]
     for tier in tiers:
         if visible_width(sep.join(part for part, _ in tier)) <= width:
