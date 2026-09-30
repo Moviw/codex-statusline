@@ -1,0 +1,86 @@
+# codex-statusline
+
+**一眼看清 Codex 的 context 和额度。**
+
+[![tests](https://github.com/Moviw/codex-statusline/actions/workflows/tests.yml/badge.svg)](https://github.com/Moviw/codex-statusline/actions/workflows/tests.yml)
+[![PyPI](https://img.shields.io/pypi/v/codex-statusline)](https://pypi.org/project/codex-statusline/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
+[English](README.md) | 简体中文
+
+给 [OpenAI Codex CLI](https://github.com/openai/codex) 加一条底栏：context 已用比例、5 小时和周额度剩余（含重置时间）、本次会话 token 数。命令照旧是 `codex`。
+
+![codex-statusline 预览](docs/preview.svg)
+
+```text
+CTX USED ███░░░░░ 35% | 5h ████████░░ 78% 5:41pm | week ████░░░░░░ 39% Fri 3:41pm | tok 1.2M
+```
+
+## 为什么用它
+
+- **不用再敲 `/status`**：额度和 context 一直在眼前。
+- **纯本地**：不读 `auth.json`、不访问额度 API、不额外调用模型。
+- **零学习成本**：继续敲 `codex`；`codex exec`、管道、脚本原样交给官方 CLI。
+- **数字诚实**：未知显示 `--`，过期显示 `refresh`，不会把未知当成 0% 或满额。
+- **窄屏自适应**：终端变窄时先压缩、再逐段隐藏。
+
+## 安装
+
+需要 macOS 或 Linux、[tmux](https://github.com/tmux/tmux)，以及 Codex CLI 0.159.0 或更高版本。Bash、Zsh、Fish 自动检测。
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/Moviw/codex-statusline/main/install.sh | sh
+```
+
+脚本会按需安装 [uv](https://docs.astral.sh/uv/)（uv 顺带解决 Python 3.11+，Ubuntu 22.04 也不用手动升级），然后安装本工具，先展示将要改动的 shell 与 hook 配置，确认后才写入。
+
+想手动装：
+
+```sh
+uv tool install codex-statusline    # 或 pipx install codex-statusline
+codex-statusline install            # 加 --dry-run 只看差异
+```
+
+然后**打开一个新终端**运行 `codex`。第一次 Codex 会提示审核 hook，确认是 `codex-statusline binding` 即可。
+
+没有 tmux？执行 `brew install tmux` 或 `sudo apt install tmux`。
+
+## 使用
+
+```sh
+codex                     # 照常使用，多了底栏
+codex resume --last
+codex exec 'task'         # 非交互命令直接透传，不显示底栏
+
+codex-statusline doctor   # 检查版本与依赖
+codex-statusline preview --demo --width 80   # 不启动 Codex 预览效果
+codex-statusline uninstall
+```
+
+卸载只移除本工具添加、且仍原样匹配的配置；如果你改过它的区块，会停止而不覆盖。备份在 `~/.local/share/codex-statusline/`。
+
+## 配置
+
+可选，创建 `~/.config/codex-statusline/config.toml`：
+
+```toml
+segments = ["ctx", "5h", "week", "tokens"]  # 选择与排序
+theme = "dark"     # dark | light
+ascii = false      # 终端不支持方块字符时设为 true
+warn_at = 20       # 额度剩余低于该百分比变黄
+crit_at = 5        # 额度剩余低于该百分比变红
+```
+
+非法值会提示并回退到默认值。
+
+## 原理
+
+`codex` 会变成一个小 shell 函数：它在私有 tmux session 里启动官方 CLI，并在底部绘制状态栏。数据只有两个来源：Codex 自己发出的终端标题（模型、context、thread id），以及由 SessionStart hook 按精确路径绑定的**本次**会话日志。不替换、不修改官方二进制，也不改你的 tmux 配置。详见[架构说明](docs/architecture.md)。
+
+## 常见问题
+
+**怎么滚动或复制？** 状态栏运行在 tmux 里，按 `Ctrl-B` 再按 `[` 进入滚动和复制模式。鼠标滚轮的行为可能和直接运行 Codex 时不同。
+
+**支持 Windows 吗？** 不支持（依赖 tmux）。
+
+**是官方的吗？** 不是。这是第三方工具，依赖版本敏感的集成方式。

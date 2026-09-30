@@ -1,0 +1,21 @@
+name: Bug report
+description: Something looks wrong or does not start
+labels: [bug]
+body:
+  - type: textarea
+    attributes:
+      label: What happened
+      description: What you did, what you expected, what you saw. A screenshot of the bar helps.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: codex-statusline doctor
+      description: Paste the output of `codex-statusline doctor`.
+      render: json
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: OS / terminal / shell
+      placeholder: macOS 15, Ghostty, fish 4.0

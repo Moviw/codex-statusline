@@ -1,0 +1,39 @@
+name: tests
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  unit:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04, macos-latest]
+        python: ['3.11', '3.13']
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install shell dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y bash zsh fish tmux
+      - name: Install shell dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: brew list tmux >/dev/null 2>&1 || brew install tmux; brew list fish >/dev/null 2>&1 || brew install fish
+      - name: Verify required test dependencies
+        run: bash --version; zsh --version; fish --version; tmux -V
+      - run: python -m unittest discover -s tests -v
+      - run: python -m compileall -q src scripts
+      - name: Lint installer
+        if: runner.os == 'Linux'
+        run: shellcheck install.sh
+  package:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uvx ruff format --check . && uvx ruff check .
+      - run: uv build
+      - name: Smoke-test the wheel as a uv tool
+        run: uv tool install --python 3.11 dist/*.whl && codex-statusline --version && codex-statusline preview --demo --width 80
