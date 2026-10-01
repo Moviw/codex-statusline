@@ -65,6 +65,7 @@ codex exec 'task'         # non-interactive: passed straight through, no bar
 
 cxbar config              # pick segments, theme and colors interactively
 cxbar update              # upgrade, whichever way you installed it
+cxbar update --check      # only check whether a new release is out
 cxbar doctor              # check your setup; prints the fix for anything wrong
 cxbar uninstall
 ```

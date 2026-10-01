@@ -64,6 +64,7 @@ codex exec 'task'         # 非交互命令直接透传，不显示底栏
 
 cxbar config              # 交互式选择显示段、主题和配色
 cxbar update              # 升级（自动识别安装方式）
+cxbar update --check      # 只检查有没有新版本，不安装
 cxbar doctor              # 检查安装状态，有问题会给出修复命令
 cxbar uninstall
 ```
