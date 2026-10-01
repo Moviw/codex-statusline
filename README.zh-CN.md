@@ -12,10 +12,6 @@
 
 ![codex-statusline 演示](docs/demo.gif)
 
-```text
-CTX USED ███░░░░░ 35% | 5h ████████░░ 78% 5:41pm | week ████░░░░░░ 39% Fri 3:41pm | tok 1.2M
-```
-
 ## 为什么用它
 
 - **不用再敲 `/status`**：额度和 context 一直在眼前。
