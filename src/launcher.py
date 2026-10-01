@@ -222,7 +222,8 @@ def launch(args):
         stream.write(f'set -g status-style "{THEMES[cfg["theme"]]}"\n')
         if cfg["line2"]:  # second status row, filled from the @line2 option
             stream.write('set -g status 2\nset -g status-format[1] "#{@line2}"\n')
-    base = [tmux, "-S", str(root / "tmux.sock"), "-f", str(conf)]
+    # -u: draw UTF-8 even when LANG/LC_* say otherwise (e.g. over ssh), or tmux drops the bars.
+    base = [tmux, "-u", "-S", str(root / "tmux.sock"), "-f", str(conf)]
     env = dict(os.environ)
     env.pop("TMUX", None)
     env.pop("TMUX_PANE", None)

@@ -172,8 +172,10 @@ def _reset(reset_at: Any, now: float, weekly: bool = False) -> str:
         return ""  # window already reset; next reset is unknown until Codex reports again
     try:
         moment = datetime.fromtimestamp(stamp)
-        time = moment.strftime("%I:%M%p").lstrip("0").lower()
-        return f"{moment.strftime('%a ' if weekly else '')}{time}"
+        # Built by hand: strftime %p/%a follow the locale (e.g. 午後, 土).
+        clock = f"{moment.hour % 12 or 12}:{moment.minute:02d}{'am' if moment.hour < 12 else 'pm'}"
+        day = ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")[moment.weekday()]
+        return f"{day} {clock}" if weekly else clock
     except (OverflowError, OSError, ValueError):
         return "--"
 

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.2
+
+- Fix: progress bars render in terminals whose locale is not UTF-8 (common over ssh); they showed as blanks or `~` in the bar and as `�` in `cxbar config`.
+- Reset times always read like `6:05pm` / `Sat 6:05pm`, whatever the system language.
+
 ## 0.4.1
 
 - The second line is on by default and shows token usage: `in 35.4k · 45% cached · out 26`.

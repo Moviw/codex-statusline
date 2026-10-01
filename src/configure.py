@@ -1,6 +1,7 @@
 """`codex-statusline config`: pick segments, theme and thresholds with a live preview."""
 
 import curses
+import locale
 import time
 
 from .render import (
@@ -153,7 +154,7 @@ KEYS = {
 }
 
 
-def _ui(screen, model: dict) -> bool:
+def _ui(screen, model: dict, ascii_only: bool = False) -> bool:
     curses.curs_set(0)
     row, state = 0, sample_state()
     while True:
@@ -164,15 +165,22 @@ def _ui(screen, model: dict) -> bool:
             state,
             max(1, width - 4),
             tmux=False,
-            ascii_only=cfg["ascii"],
+            ascii_only=cfg["ascii"] or ascii_only,
             segments=cfg["segments"],
             warn_at=cfg["warn_at"],
             crit_at=cfg["crit_at"],
         )
-        lines = ["codex-statusline config", HELP, ""]
+        help_text = (
+            HELP.replace("↑↓", "up/down").replace("←→", "left/right") if ascii_only else HELP
+        )
+        lines = ["codex-statusline config", help_text, ""]
         lines += [("> " if i == row else "  ") + text for i, text in enumerate(rows_text(model))]
         second = render_line2(
-            state, max(1, width - 4), cfg["line2"], tmux=False, ascii_only=cfg["ascii"]
+            state,
+            max(1, width - 4),
+            cfg["line2"],
+            tmux=False,
+            ascii_only=cfg["ascii"] or ascii_only,
         )
         lines += ["", "Preview (sample numbers):", "  " + preview]
         lines += ["  " + second] if second else []
@@ -192,10 +200,28 @@ def _ui(screen, model: dict) -> bool:
         row = apply(model, row, name)
 
 
+def utf8_terminal() -> bool:
+    """Put curses in UTF-8 mode; under a C/POSIX locale it mangles block glyphs."""
+    try:
+        locale.setlocale(locale.LC_ALL, "")
+    except locale.Error:
+        pass
+    if "utf" in locale.nl_langinfo(locale.CODESET).lower():
+        return True
+    for name in ("C.UTF-8", "en_US.UTF-8", "UTF-8"):
+        try:
+            locale.setlocale(locale.LC_CTYPE, name)
+            return True
+        except locale.Error:
+            continue
+    return False
+
+
 def configure() -> int:
     model = model_from(load_config())
+    ascii_only = not utf8_terminal()
     try:
-        save = curses.wrapper(_ui, model)
+        save = curses.wrapper(_ui, model, ascii_only)
     except curses.error as error:
         print(f"codex-statusline: needs an interactive terminal ({error}).")
         print(f"Edit {config_path()} instead.")

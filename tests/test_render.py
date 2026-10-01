@@ -237,3 +237,24 @@ class ConfigTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ClockTests(unittest.TestCase):
+    def test_reset_time_ignores_locale(self):
+        import locale
+        from datetime import datetime
+
+        from src.render import _reset
+
+        stamp = datetime(2026, 10, 3, 18, 5).timestamp()  # a Saturday, 6:05pm
+        previous = locale.setlocale(locale.LC_TIME)
+        try:
+            for name in ("ja_JP.UTF-8", "de_DE.UTF-8", "C"):
+                try:
+                    locale.setlocale(locale.LC_TIME, name)
+                except locale.Error:
+                    continue
+                self.assertEqual(_reset(stamp, 0), "6:05pm")
+                self.assertEqual(_reset(stamp, 0, weekly=True), "Sat 6:05pm")
+        finally:
+            locale.setlocale(locale.LC_TIME, previous)
