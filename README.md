@@ -12,9 +12,6 @@ A status bar for [OpenAI Codex CLI](https://github.com/openai/codex). It shows c
 
 ![codex-statusline demo](docs/demo.gif)
 
-```text
-CTX USED ███░░░░░ 35% | 5h ████████░░ 78% 5:41pm | week ████░░░░░░ 39% Fri 3:41pm | tok 1.2M
-```
 
 ## Why
 
