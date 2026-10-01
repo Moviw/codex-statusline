@@ -10,7 +10,7 @@
 
 给 [OpenAI Codex CLI](https://github.com/openai/codex) 加一条底栏：context 已用比例、5 小时和周额度剩余（含重置时间）、本次会话 token 数。命令照旧是 `codex`。
 
-![codex-statusline 预览](docs/preview.svg)
+![codex-statusline 演示](docs/demo.gif)
 
 ```text
 CTX USED ███░░░░░ 35% | 5h ████████░░ 78% 5:41pm | week ████░░░░░░ 39% Fri 3:41pm | tok 1.2M

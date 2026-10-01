@@ -10,7 +10,7 @@ English | [简体中文](README.zh-CN.md)
 
 A status bar for [OpenAI Codex CLI](https://github.com/openai/codex). It shows context used, 5-hour and weekly quota left with reset times, and session tokens. You keep running `codex` exactly as before.
 
-![codex-statusline](docs/preview.svg)
+![codex-statusline demo](docs/demo.gif)
 
 ```text
 CTX USED ███░░░░░ 35% | 5h ████████░░ 78% 5:41pm | week ████░░░░░░ 39% Fri 3:41pm | tok 1.2M
