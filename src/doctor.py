@@ -66,7 +66,16 @@ def checks(home: Path, latest=latest_version) -> list[tuple[bool | None, str, st
             )
         except tomllib.TOMLDecodeError:
             state = {}
-        trusted = "trusted_hash" in state.get(f"{hooks_path}:session_start:{index}:0", {})
+        # Codex keys trust by the hooks.json path as it sees it; compare resolved paths so a
+        # symlinked ~/.codex (or macOS /var -> /private/var) still matches.
+        suffix = f":session_start:{index}:0"
+        trusted = any(
+            key.endswith(suffix)
+            and Path(key.removesuffix(suffix)).resolve() == hooks_path.resolve()
+            and "trusted_hash" in value
+            for key, value in state.items()
+            if isinstance(value, dict)
+        )
         out.append(
             (True, "hook approved in Codex", None)
             if trusted

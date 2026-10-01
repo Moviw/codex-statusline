@@ -32,7 +32,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10
+      - uses: astral-sh/setup-uv@v10.2.0
       - run: uvx ruff format --check . && uvx ruff check .
       - run: uv build
       - name: Smoke-test the wheel as a uv tool

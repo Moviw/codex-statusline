@@ -11,7 +11,7 @@ jobs:
       contents: write   # create the GitHub Release
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10
+      - uses: astral-sh/setup-uv@v10.2.0
       - run: uv build
       - uses: pypa/gh-action-pypi-publish@release/v1
       - run: gh release create "$GITHUB_REF_NAME" dist/* --title "$GITHUB_REF_NAME" --notes-file <(awk "/^## ${GITHUB_REF_NAME#v}/{f=1;next} /^## /{f=0} f" CHANGELOG.md)

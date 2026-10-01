@@ -14,7 +14,11 @@ from src import doctor, manage
 class DoctorTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
-        self.home = Path(self.temp.name)
+        # A symlinked home, like macOS /var -> /private/var or a linked ~/.codex.
+        real = Path(self.temp.name) / "real"
+        real.mkdir()
+        self.home = Path(self.temp.name) / "link"
+        self.home.symlink_to(real)
         env = {"CODEX_HOME": str(self.home / ".codex"), "ZDOTDIR": str(self.home)}
         for p in (
             patch.dict(os.environ, env),
