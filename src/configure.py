@@ -20,8 +20,8 @@ SEGMENT_NAMES = {
     "tokens": "session tokens",
 }
 LINE2_NAMES = {
+    "usage": "line 2: tokens in / cached / out",
     "pace": "line 2: when quota runs out at this pace",
-    "usage": "line 2: tokens in / cached / out, context size",
 }
 SETTINGS = ["theme", "ascii", "warn_at", "crit_at", "update_check"]
 LABELS = {
@@ -132,7 +132,6 @@ def sample_state() -> dict:
     return {
         "context_used": 35,
         "tokens": 1_234_567,
-        "window": 258_400,
         "usage": {
             "input_tokens": 1_190_000,
             "cached_input_tokens": 1_120_000,

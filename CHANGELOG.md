@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.1
+
+- The second line is on by default and shows token usage: `in 35.4k · 45% cached · out 26`.
+- `pace` moves after `usage` and stays optional; turn it on in `cxbar config`.
+- Dropped `ctx` from the second line (the first line already shows context).
+
 ## 0.4.0
 
 - **Second line** (opt-in in `cxbar config`):

@@ -22,9 +22,10 @@ class ConfigureTests(unittest.TestCase):
         apply(m, 9, "left")  # crit_at 5 -> 0
         apply(m, 9, "left")  # clamps at 0
         apply(m, 10, "space")  # update notice off
-        apply(m, 5, "space")  # line 2: usage on
+        apply(m, 4, "space")  # line 2: usage (on by default) -> off
+        apply(m, 5, "space")  # line 2: pace on
         cfg = to_config(m)
-        self.assertEqual(cfg["line2"], ["usage"])
+        self.assertEqual(cfg["line2"], ["pace"])
         self.assertEqual(cfg["segments"], ["ctx", "week", "5h"])
         self.assertEqual((cfg["theme"], cfg["warn_at"], cfg["crit_at"]), ("dark", 15, 0))
         self.assertFalse(cfg["update_check"])

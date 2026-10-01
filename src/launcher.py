@@ -279,7 +279,7 @@ def launch(args):
                     state["cwd"] = bound.get("cwd") or config["cwd"]
                     snapshot = reader.update(bound["transcript_path"])
                     state["quotas"] = snapshot.get("quotas", {})
-                    for key in ("tokens", "usage", "window"):
+                    for key in ("tokens", "usage"):
                         state[key] = snapshot.get(key)
                 state["quotas"] = merge_quotas(state["quotas"], others)
                 state["update"] = latest.get("version")

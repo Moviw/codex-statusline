@@ -32,9 +32,9 @@ _CONFIG_DEFAULTS = {
     "ascii": False,
     "warn_at": 20,
     "crit_at": 5,
-    "line2": [],
+    "line2": ["usage"],
 }
-LINE2_SEGMENTS = ["pace", "usage"]
+LINE2_SEGMENTS = ["usage", "pace"]
 
 
 def config_path() -> Path:
@@ -242,24 +242,20 @@ def _pace(data: Any, minutes: int, now: float, weekly: bool) -> tuple[str, str] 
     return f"{label} pace: runs out ~{_reset(empty_at, now, weekly)}", "warning"
 
 
-def _usage(state: dict) -> str | None:
+def _usage(state: dict) -> str:
     usage = state.get("usage")
     if not isinstance(usage, dict):
-        return None
+        return "in -- · out --"  # before the first turn
     numbers = [
         _number(usage.get(k)) for k in ("input_tokens", "cached_input_tokens", "output_tokens")
     ]
     if any(n is None or n < 0 for n in numbers):
-        return None
+        return "in -- · out --"
     given, cached, output = numbers
     text = f"in {_si(given)}"
     if given:
         text += f" · {round(100 * min(cached, given) / given)}% cached"
-    text += f" · out {_si(output)}"
-    window, context = _number(state.get("window")), _number(state.get("context_used"))
-    if window and context is not None:
-        text += f" · ctx {_si(window * context / 100)}/{_si(window)}"
-    return text
+    return text + f" · out {_si(output)}"
 
 
 def render_line2(
@@ -270,12 +266,14 @@ def render_line2(
     ascii_only: bool = False,
     tmux: bool = True,
 ) -> str:
-    """Optional second line: quota pace and token breakdown; drops parts from the end."""
+    """Second line: token breakdown, then quota pace; drops parts from the end."""
     width = max(0, int(width))
     state = state if isinstance(state, dict) else {}
     now = _number(state.get("now")) or datetime.now().timestamp()
     quotas = state.get("quotas") if isinstance(state.get("quotas"), dict) else {}
     parts: list[tuple[str, str]] = []
+    if "usage" in line2:
+        parts.append((_usage(state), "accent"))
     if "pace" in line2:
         for data, minutes, weekly in (
             (quotas.get("5h"), 300, False),
@@ -284,10 +282,6 @@ def render_line2(
             pace = _pace(data, minutes, now, weekly)
             if pace:
                 parts.append(pace)
-    if "usage" in line2:
-        usage = _usage(state)
-        if usage:
-            parts.append((usage, "accent"))
     sep = " | "
     if ascii_only:
         parts = [(text.replace("·", "-"), role) for text, role in parts]

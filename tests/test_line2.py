@@ -32,7 +32,6 @@ class Line2Tests(unittest.TestCase):
         state = {
             "now": NOW,
             "context_used": 50,
-            "window": 258_400,
             "usage": {
                 "input_tokens": 2_000_000,
                 "cached_input_tokens": 1_900_000,
@@ -41,14 +40,16 @@ class Line2Tests(unittest.TestCase):
             "quotas": {"5h": quota(22, 3 * 3600)},
         }
         wide = render_line2(state, 200, ["pace", "usage"], tmux=False)
-        self.assertIn("in 2.0M · 95% cached · out 66.0k · ctx 129.2k/258.4k", wide)
-        narrow = render_line2(state, 40, ["pace", "usage"], tmux=False)
-        self.assertIn("5h pace", narrow)
-        self.assertNotIn("cached", narrow)
+        self.assertIn("in 2.0M · 95% cached · out 66.0k", wide)
+        self.assertLess(wide.index("cached"), wide.index("5h pace"))  # usage first
+        narrow = render_line2(state, 40, ["usage", "pace"], tmux=False)
+        self.assertIn("cached", narrow)
+        self.assertNotIn("pace", narrow)  # pace drops first
+        self.assertIn("in -- · out --", render_line2({}, 80, ["usage"], tmux=False))
         self.assertTrue(render_line2(state, 200, ["usage"], tmux=False, ascii_only=True).isascii())
         self.assertEqual(render_line2(state, 200, [], tmux=False), "")
 
-    def test_reader_keeps_breakdown_and_window(self):
+    def test_reader_keeps_token_breakdown(self):
         info = {
             "total_token_usage": {
                 "input_tokens": 10,
@@ -56,7 +57,6 @@ class Line2Tests(unittest.TestCase):
                 "output_tokens": 2,
                 "total_tokens": 12,
             },
-            "model_context_window": 258_400,
         }
         event = {
             "type": "event_msg",
@@ -70,13 +70,14 @@ class Line2Tests(unittest.TestCase):
         self.assertEqual(
             snap["usage"], {"input_tokens": 10.0, "cached_input_tokens": 4.0, "output_tokens": 2.0}
         )
-        self.assertEqual(snap["window"], 258_400.0)
 
     def test_config_line2_validated(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "c.toml"
             path.write_text('line2 = ["pace", "usage"]\n')
             self.assertEqual(load_config(path)["line2"], ["pace", "usage"])
+            path.write_text("")
+            self.assertEqual(load_config(path)["line2"], ["usage"])  # usage on by default
             path.write_text('line2 = ["bogus"]\n')
             with unittest.mock.patch("sys.stderr"):
-                self.assertEqual(load_config(path)["line2"], [])
+                self.assertEqual(load_config(path)["line2"], ["usage"])  # invalid -> default

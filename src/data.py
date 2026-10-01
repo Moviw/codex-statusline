@@ -126,7 +126,6 @@ class LogReader:
         self._quotas = _empty_quotas()
         self._tokens: float | None = None
         self._usage: dict[str, float] | None = None
-        self._window: float | None = None
 
     def _reset(self, path: str) -> None:
         self._path = path
@@ -138,7 +137,6 @@ class LogReader:
         self._quotas = _empty_quotas()
         self._tokens = None
         self._usage = None
-        self._window = None
 
     def _consume_line(self, line: bytes) -> None:
         try:
@@ -162,9 +160,6 @@ class LogReader:
             usage = {key: total.get(key) for key in USAGE_KEYS}
             if all(_count(v) for v in usage.values()):
                 self._usage = {key: float(v) for key, v in usage.items()}
-        window = info.get("model_context_window") if isinstance(info, dict) else None
-        if _count(window) and window > 0:
-            self._window = float(window)
         # Native versions may keep rate_limits inside info; quota-only events
         # can instead carry rate_limits directly on payload (even if info is null).
         rate_limits = info.get("rate_limits") if isinstance(info, dict) else None
@@ -246,7 +241,6 @@ class LogReader:
                 self._quotas = _empty_quotas()
                 self._tokens = None
                 self._usage = None
-                self._window = None
                 if stat.st_size > _MAX_READ_BYTES:
                     # Start at a bounded tail boundary, discarding its possibly
                     # incomplete first line.  Current quota events remain
@@ -282,7 +276,6 @@ class LogReader:
             self._quotas = _empty_quotas()
             self._tokens = None
             self._usage = None
-            self._window = None
         except OSError:
             # Avoid exporting filesystem details or turning transient I/O into
             # fabricated quota data; previously observed metadata remains.
@@ -291,7 +284,6 @@ class LogReader:
             "quotas": {name: dict(value) for name, value in self._quotas.items()},
             "tokens": self._tokens,
             "usage": dict(self._usage) if self._usage else None,
-            "window": self._window,
         }
 
 
