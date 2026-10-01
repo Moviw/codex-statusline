@@ -76,25 +76,31 @@ Uninstall removes only what this tool added and still matches exactly. If you ed
 
 ## Configuration
 
-Run `cxbar config` to set everything up in an interactive screen with a live preview: toggle and reorder segments, choose what the second line shows, switch theme, set the warning thresholds, then press `s` to save.
+Run `cxbar config` to set everything up in an interactive screen with a live, colored preview. Codex and Claude Code each get their own tab (press Tab to switch), so the two bars can look different: toggle and reorder segments, choose what the second line shows, switch theme, set the warning thresholds, then press `s` to save.
 
 ```text
-  [x] ctx     context used
+  codex-statusline config
+
+  [ Codex ]   Claude Code      Tab: switch
+
+  Preview
+    CTX USED ███░░░░░ 35% | 5h ██░░░░░░░░ 18% 3:46pm | week ██████░░░░ 62% Sat 1:46pm | tok 1.2M
+    in 1.2M · 94% cached · out 44.0k
+
+  Line 1
+▶ [x] ctx     context used
   [x] 5h      5-hour quota
   [x] week    weekly quota
   [x] tokens  session tokens
-  [x] usage   line 2: tokens in / cached / out
-  [x] cost    line 2: session cost estimate (Claude Code)
-  [ ] pace    line 2: when quota runs out at this pace
-> Theme            < auto >
+  Line 2
+  [x] usage   tokens in / cached / out
+  [ ] pace    when quota runs out at this pace
+  Style
+  Theme            < auto >
   ASCII only       [ ]
-  Quota yellow at  < 20% >
-  Quota red at     < 5% >
+  Quota yellow at  < 40% >
+  Quota red at     < 20% >
   Update notice    [x]
-
-Preview (sample numbers):
-    CTX USED ███░░░░░ 35% | 5h ██░░░░░░░░ 18% 3:46pm | week ██████░░░░ 62% Sat 1:46pm | tok 1.2M
-    in 1.2M · 94% cached · out 44.0k
 ```
 
 The second line has three parts:
@@ -108,14 +114,20 @@ Turn them all off to keep a single line.
 It writes `~/.config/codex-statusline/config.toml`, which you can also edit by hand:
 
 ```toml
+# Top-level keys apply to both tools; [codex] and [claude] override them per tool.
 segments = ["ctx", "5h", "week", "tokens"]  # pick and reorder
 theme = "auto"     # auto (follow terminal) | dark | light
 ascii = false      # true for terminals without block glyphs
-warn_at = 20       # quota remaining % that turns yellow
-crit_at = 5        # quota remaining % that turns red
+warn_at = 40       # quota remaining % that turns yellow
+crit_at = 20       # quota remaining % that turns red
 update_check = true  # show "↑ update available" in the bar when one is out
 line2 = ["usage", "cost"]  # second line: any of "usage", "cost", "pace"; [] for none
+
+[claude]
+line2 = ["usage", "cost", "pace"]  # e.g. pace only in Claude Code
 ```
+
+Context turns yellow from 60% used and red from 80%.
 
 Invalid values are reported and fall back to defaults.
 

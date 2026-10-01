@@ -164,16 +164,18 @@ class RenderTests(unittest.TestCase):
         self.assertNotIn("\x1b", result)
 
     def test_urgency_styles_keep_numbers_visible(self):
-        cases = [
-            ({"context_used": 80}, "colour220"),
-            ({"context_used": 95}, "colour196"),
+        cases = [  # context: yellow from 60% used, red from 80%
+            ({"context_used": 59}, "colour75"),
+            ({"context_used": 60}, "colour220"),
+            ({"context_used": 80}, "colour196"),
         ]
         for fields, color in cases:
             state = {"model": "M", "now": 1000, "quotas": {}, **fields}
             out = render(state, 240)
             self.assertIn(f"#[fg={color}]", out)
             self.assertIn(f"{fields['context_used']}%", out)
-        for remaining, color in ((20, "colour220"), (5, "colour196")):
+        # quota left: yellow at 40% or less, red at 20% or less
+        for remaining, color in ((41, "colour75"), (40, "colour220"), (20, "colour196")):
             state = {
                 "model": "M",
                 "context_used": 10,

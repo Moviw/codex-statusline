@@ -75,25 +75,31 @@ cxbar uninstall
 
 ## 配置
 
-运行 `cxbar config`，在交互界面里一边预览一边配置：开关和排序显示段、选择第二行显示的内容、切换主题、设置变色阈值，按 `s` 保存。
+运行 `cxbar config`，在交互界面里对着彩色预览配置。Codex 和 Claude Code 各有一个标签页（按 Tab 切换），两边的底栏可以设置得不一样：开关和排序显示段、选择第二行显示的内容、切换主题、设置变色阈值，按 `s` 保存。
 
 ```text
-  [x] ctx     context used
+  codex-statusline config
+
+  [ Codex ]   Claude Code      Tab: switch
+
+  Preview
+    CTX USED ███░░░░░ 35% | 5h ██░░░░░░░░ 18% 3:46pm | week ██████░░░░ 62% Sat 1:46pm | tok 1.2M
+    in 1.2M · 94% cached · out 44.0k
+
+  Line 1
+▶ [x] ctx     context used
   [x] 5h      5-hour quota
   [x] week    weekly quota
   [x] tokens  session tokens
-  [x] usage   line 2: tokens in / cached / out
-  [x] cost    line 2: session cost estimate (Claude Code)
-  [ ] pace    line 2: when quota runs out at this pace
-> Theme            < auto >
+  Line 2
+  [x] usage   tokens in / cached / out
+  [ ] pace    when quota runs out at this pace
+  Style
+  Theme            < auto >
   ASCII only       [ ]
-  Quota yellow at  < 20% >
-  Quota red at     < 5% >
+  Quota yellow at  < 40% >
+  Quota red at     < 20% >
   Update notice    [x]
-
-Preview (sample numbers):
-    CTX USED ███░░░░░ 35% | 5h ██░░░░░░░░ 18% 3:46pm | week ██████░░░░ 62% Sat 1:46pm | tok 1.2M
-    in 1.2M · 94% cached · out 44.0k
 ```
 
 第二行有三项：
@@ -107,14 +113,20 @@ Preview (sample numbers):
 配置保存在 `~/.config/codex-statusline/config.toml`，也可以直接手动编辑：
 
 ```toml
+# 顶层的设置对两边都生效；[codex] 和 [claude] 里的设置只对对应工具生效
 segments = ["ctx", "5h", "week", "tokens"]  # 选择与排序
 theme = "auto"     # auto（跟随终端）| dark | light
 ascii = false      # 终端不支持方块字符时设为 true
-warn_at = 20       # 额度剩余低于该百分比变黄
-crit_at = 5        # 额度剩余低于该百分比变红
+warn_at = 40       # 额度剩余低于该百分比变黄
+crit_at = 20       # 额度剩余低于该百分比变红
 update_check = true  # 有新版本时在底栏显示 "↑ update available"
 line2 = ["usage", "cost"]  # 第二行："usage"、"cost"、"pace" 任选，[] 不显示
+
+[claude]
+line2 = ["usage", "cost", "pace"]  # 例如只在 Claude Code 里显示 pace
 ```
+
+context 用到 60% 变黄，80% 变红。
 
 非法值会提示并回退到默认值。
 

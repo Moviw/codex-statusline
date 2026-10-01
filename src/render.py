@@ -30,8 +30,8 @@ _CONFIG_DEFAULTS = {
     "segments": DEFAULT_SEGMENTS,
     "theme": "auto",
     "ascii": False,
-    "warn_at": 20,
-    "crit_at": 5,
+    "warn_at": 40,
+    "crit_at": 20,
     "line2": ["usage", "cost"],
 }
 LINE2_SEGMENTS = ["usage", "cost", "pace"]
@@ -42,8 +42,14 @@ def config_path() -> Path:
     return Path(base) / "codex-statusline" / "config.toml"
 
 
-def load_config(path: str | os.PathLike | None = None) -> dict[str, Any]:
-    """Read $XDG_CONFIG_HOME/codex-statusline/config.toml; invalid values fall back to defaults."""
+TARGETS = ("codex", "claude")
+
+
+def load_config(path: str | os.PathLike | None = None, target: str = "codex") -> dict[str, Any]:
+    """Read $XDG_CONFIG_HOME/codex-statusline/config.toml; invalid values fall back to defaults.
+
+    Top-level keys apply to every tool; a [codex] or [claude] table overrides them for that tool.
+    """
     if path is None:
         path = config_path()
     config = dict(_CONFIG_DEFAULTS)
@@ -65,14 +71,16 @@ def load_config(path: str | os.PathLike | None = None) -> dict[str, Any]:
         "crit_at": lambda v: isinstance(v, int) and not isinstance(v, bool) and 0 <= v <= 100,
         "line2": lambda v: isinstance(v, list) and all(x in LINE2_SEGMENTS for x in v),
     }
-    for key, value in raw.items():
-        if key in checks and checks[key](value):
-            config[key] = value
-        else:
-            print(
-                f"codex-statusline: ignoring invalid config key {key!r}",
-                file=sys.stderr,
-            )
+    tables = {name: raw.pop(name) for name in TARGETS if isinstance(raw.get(name), dict)}
+    for section in (raw, tables.get(target, {})):
+        for key, value in section.items():
+            if key in checks and checks[key](value):
+                config[key] = value
+            else:
+                print(
+                    f"codex-statusline: ignoring invalid config key {key!r}",
+                    file=sys.stderr,
+                )
     # Existing env switches still win, so older installs behave the same.
     if os.environ.get("CODEX_STATUSLINE_THEME") in THEMES:
         config["theme"] = os.environ["CODEX_STATUSLINE_THEME"]
@@ -198,14 +206,14 @@ def _quota_values(
 
 def _context_role(value: Any) -> str:
     number = _percent(value)
-    if number is not None and number >= 95:
-        return "critical"
     if number is not None and number >= 80:
+        return "critical"
+    if number is not None and number >= 60:
         return "warning"
     return "accent"
 
 
-def _quota_role(value: int | None, warn_at: int = 20, crit_at: int = 5) -> str:
+def _quota_role(value: int | None, warn_at: int = 40, crit_at: int = 20) -> str:
     if value is not None and value <= crit_at:
         return "critical"
     if value is not None and value <= warn_at:
@@ -321,8 +329,8 @@ def render(
     ascii_only: bool = False,
     tmux: bool = True,
     segments: list[str] | None = None,
-    warn_at: int = 20,
-    crit_at: int = 5,
+    warn_at: int = 40,
+    crit_at: int = 20,
     ansi: bool = False,
 ) -> str:
     """Render an untrusted status snapshot to one line no wider than *width*."""

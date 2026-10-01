@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.0
+
+- **`cxbar config`, redesigned**: a colored live preview at the top, a green `▶` on the selected row, and bold sections.
+- **One tab per tool**: Codex and Claude Code each get their own settings (press Tab to switch). The file stores them as `[codex]` and `[claude]` tables; top-level keys still apply to both, so existing configs keep working.
+- **New default colors**: context turns yellow from 60% used and red from 80%; 5h and weekly quota turn yellow at 40% left and red at 20%.
+- `cxbar config` now saves only the settings you changed, so future default improvements reach you too. If you saved with an older version and want the new colors, open `cxbar config` and set the two quota thresholds, or delete `warn_at` / `crit_at` from the file.
+
 ## 0.5.1
 
 - `cxbar update --check` reports whether a new release is out without installing it (exit code 0 up to date, 1 update available, 2 could not check).

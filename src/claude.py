@@ -78,7 +78,7 @@ def statusline(stream=None) -> int:
         data = {}
     if not isinstance(data, dict):
         data = {}
-    cfg = load_config()
+    cfg = load_config(target="claude")
     state = state_from(data, time.time())
     if cfg["update_check"]:
         state["update"], state["updater"] = cached_newer_version(), "cxbar"
