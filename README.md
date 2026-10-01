@@ -61,20 +61,32 @@ Uninstall removes only what this tool added and still matches exactly. If you ed
 
 ## Configuration
 
-Run `cxbar config` to set everything up in an interactive screen with a live preview: toggle and reorder segments, switch theme, set the warning thresholds, then press `s` to save.
+Run `cxbar config` to set everything up in an interactive screen with a live preview: toggle and reorder segments, choose what the second line shows, switch theme, set the warning thresholds, then press `s` to save.
 
 ```text
   [x] ctx     context used
   [x] 5h      5-hour quota
   [x] week    weekly quota
   [x] tokens  session tokens
+  [x] usage   line 2: tokens in / cached / out
+  [ ] pace    line 2: when quota runs out at this pace
 > Theme            < auto >
+  ASCII only       [ ]
   Quota yellow at  < 20% >
   Quota red at     < 5% >
+  Update notice    [x]
 
 Preview (sample numbers):
     CTX USED ███░░░░░ 35% | 5h ██░░░░░░░░ 18% 3:46pm | week ██████░░░░ 62% Sat 1:46pm | tok 1.2M
+    in 1.2M · 94% cached · out 44.0k
 ```
+
+The second line has two parts:
+
+- `usage` (on by default): tokens sent, how much of that hit the cache, and tokens generated.
+- `pace` (off by default): when your 5h and weekly quota run out at the rate you have used them so far, e.g. `week pace: runs out ~Tue 1:27am`, or `lasts to reset`.
+
+Turn both off to keep a single line.
 
 It writes `~/.config/codex-statusline/config.toml`, which you can also edit by hand:
 
@@ -84,7 +96,8 @@ theme = "auto"     # auto (follow terminal) | dark | light
 ascii = false      # true for terminals without block glyphs
 warn_at = 20       # quota remaining % that turns yellow
 crit_at = 5        # quota remaining % that turns red
-update_check = true  # show "↑ new version" in the bar when one is out
+update_check = true  # show "↑ update available" in the bar when one is out
+line2 = ["usage"]  # second line: "usage", "pace", both, or [] for none
 ```
 
 Invalid values are reported and fall back to defaults.

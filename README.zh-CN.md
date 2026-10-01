@@ -60,20 +60,32 @@ cxbar uninstall
 
 ## 配置
 
-运行 `cxbar config`，在交互界面里一边预览一边配置：开关和排序显示段、切换主题、设置变色阈值，按 `s` 保存。
+运行 `cxbar config`，在交互界面里一边预览一边配置：开关和排序显示段、选择第二行显示的内容、切换主题、设置变色阈值，按 `s` 保存。
 
 ```text
   [x] ctx     context used
   [x] 5h      5-hour quota
   [x] week    weekly quota
   [x] tokens  session tokens
+  [x] usage   line 2: tokens in / cached / out
+  [ ] pace    line 2: when quota runs out at this pace
 > Theme            < auto >
+  ASCII only       [ ]
   Quota yellow at  < 20% >
   Quota red at     < 5% >
+  Update notice    [x]
 
 Preview (sample numbers):
     CTX USED ███░░░░░ 35% | 5h ██░░░░░░░░ 18% 3:46pm | week ██████░░░░ 62% Sat 1:46pm | tok 1.2M
+    in 1.2M · 94% cached · out 44.0k
 ```
+
+第二行有两项：
+
+- `usage`（默认打开）：发送的 token 数、其中命中缓存的比例、生成的 token 数。
+- `pace`（默认关闭）：按目前的使用速度，5h 和周额度会在什么时候用完，例如 `week pace: runs out ~Tue 1:27am`；撑得到重置时显示 `lasts to reset`。
+
+两项都关掉，就只显示一行。
 
 配置保存在 `~/.config/codex-statusline/config.toml`，也可以直接手动编辑：
 
@@ -83,7 +95,8 @@ theme = "auto"     # auto（跟随终端）| dark | light
 ascii = false      # 终端不支持方块字符时设为 true
 warn_at = 20       # 额度剩余低于该百分比变黄
 crit_at = 5        # 额度剩余低于该百分比变红
-update_check = true  # 有新版本时在底栏显示 "↑ 新版本号"
+update_check = true  # 有新版本时在底栏显示 "↑ update available"
+line2 = ["usage"]  # 第二行："usage"、"pace"、两者都要，或 [] 不显示
 ```
 
 非法值会提示并回退到默认值。
