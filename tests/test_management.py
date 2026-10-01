@@ -53,6 +53,21 @@ class InstallTests(unittest.TestCase):
             str(ENTRY), manage.hook_group()["hooks"][0]["command"]
         )  # git-clone mode unchanged
 
+    def test_install_from_new_path_replaces_previous_install(self):
+        (self.root / ".zshrc").write_text("# mine\n")
+        manage.installation(self.args)  # e.g. an old git-checkout install
+        tool = ["/home/u/.local/bin/codex-statusline"]
+        with patch.object(manage, "base_command", return_value=tool):
+            manage.installation(self.args)  # now from uv/pipx
+            rc = (self.root / ".zshrc").read_text()
+            self.assertEqual(rc.count(manage.BEGIN), 1)
+            self.assertIn(tool[0], rc)
+            hooks = json.loads((self.root / ".codex/hooks.json").read_text())
+            commands = [h["hooks"][0]["command"] for h in hooks["hooks"]["SessionStart"]]
+            self.assertEqual(commands, [tool[0] + " hook"])
+            manage.installation(self.args, True)
+        self.assertEqual((self.root / ".zshrc").read_text(), "# mine\n")
+
     def test_install_repeat_uninstall_preserves_later_changes(self):
         original = "# original rc\nexport USER_SETTING=yes\n"
         (self.root / ".zshrc").write_text(original)

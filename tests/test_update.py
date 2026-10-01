@@ -27,11 +27,13 @@ class UpdateTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             (Path(tmp) / "uv-receipt.toml").touch()
             self.assertEqual(
-                upgrade_command(tmp, pkg), ["uv", "tool", "upgrade", "codex-statusline"]
+                upgrade_command(tmp, pkg), ["uv", "tool", "install", "codex-statusline@latest"]
             )
         with tempfile.TemporaryDirectory() as tmp:
             (Path(tmp) / "pipx_metadata.json").touch()
-            self.assertEqual(upgrade_command(tmp, pkg), ["pipx", "upgrade", "codex-statusline"])
+            self.assertEqual(
+                upgrade_command(tmp, pkg), ["pipx", "install", "--force", "codex-statusline"]
+            )
         self.assertEqual(upgrade_command("/nowhere", pkg)[1:3], ["-m", "pip"])
         repo = Path(__file__).resolve().parent.parent
         if (repo / ".git").exists():

@@ -42,10 +42,12 @@ def main():
         s.add_argument(
             "--yes",
             action="store_true",
-            help="approve printed diff without interactive prompt",
+            help="apply without asking",
         )
+        s.add_argument("--diff", action="store_true", help="show the exact file changes")
         s.add_argument("--dry-run", action="store_true")
     sub.add_parser("doctor")
+    sub.add_parser("config", help="choose segments, theme and thresholds interactively")
     sub.add_parser("update", help="upgrade codex-statusline the way it was installed")
     p = sub.add_parser("preview")
     p.add_argument("--width", type=int, default=120)
@@ -58,6 +60,10 @@ def main():
             from .manage import installation
 
             return installation(ns, ns.action == "uninstall")
+        if ns.action == "config":
+            from .configure import configure
+
+            return configure()
         if ns.action == "update":
             from .update import update
 

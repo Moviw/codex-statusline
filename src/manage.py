@@ -16,6 +16,7 @@ from .launcher import ENTRY
 
 BEGIN = "# >>> codex-statusline >>>"
 END = "# <<< codex-statusline <<<"
+STATUS_MESSAGE = "codex-statusline binding"
 
 
 def detected_shell():
@@ -96,7 +97,7 @@ def hook_group():
                 "type": "command",
                 "command": shlex.join([*base_command(), "hook"]),
                 "timeout": 2,
-                "statusMessage": "codex-statusline binding",
+                "statusMessage": STATUS_MESSAGE,
             }
         ]
     }
@@ -167,14 +168,45 @@ def modify_hook(raw, group, add):
     return json.dumps(obj, ensure_ascii=False, indent=2) + "\n"
 
 
+def summary(changed, home):
+    """One line per file: what is added or removed, in words rather than a diff."""
+    lines = ["codex-statusline will:"]
+    for p, old, new in changed:
+        what = "the SessionStart hook" if p.name == "hooks.json" else "the codex shell function"
+        if p.name == "hooks.json":  # JSON is re-serialized, so compare our marker instead
+            had, has = (STATUS_MESSAGE in t for t in (old, new))
+            sign, verb = (
+                ("+", "add") if has and not had else ("-", "remove") if had else ("~", "update")
+            )
+        elif old in new:
+            sign, verb = "+", "add"
+        elif new in old:
+            sign, verb = "-", "remove"
+        else:
+            sign, verb = "~", "update"
+        lines.append(f"  {sign} {tilde(p, home):<44} {verb} {what}")
+    return "\n".join(lines)
+
+
+def tilde(p, home):
+    try:
+        return "~/" + str(Path(p).relative_to(home))
+    except ValueError:
+        return str(p)
+
+
 def installation(args, uninstall=False):
     chome, shells, manifest_path = paths(args.home, args.shell)
-    changes = []
     previous = json.loads(text(manifest_path) or "{}")
     if uninstall and not previous:
         print("Nothing installed by codex-statusline.")
         return 0
-    if uninstall:
+    pending = {}  # path -> new text; several steps may edit the same file
+
+    def current(p):
+        return pending.get(p, text(p))
+
+    def remove_previous():
         # Manifest defines owned paths; never use current shell choice to guess.
         expected_home, allowed_shells, _ = paths(args.home, "all")
         if previous.get("hooks_path") != str(expected_home / "hooks.json") or any(
@@ -183,19 +215,20 @@ def installation(args, uninstall=False):
             or not i["block"].endswith(END + "\n")
             for i in previous.get("shells", [])
         ):
-            raise ValueError("Manifest paths/blocks do not match this home; refusing uninstall.")
-        group = previous["hook_group"]
-        hp = Path(previous["hooks_path"])
-        old = text(hp)
-        new = modify_hook(old, group, False)
-        changes.append((hp, old, new))
+            raise ValueError("Manifest paths/blocks do not match this home; refusing to remove it.")
+        php = Path(previous["hooks_path"])
+        pending[php] = modify_hook(current(php), previous["hook_group"], False)
         for item in previous["shells"]:
             p = Path(item["path"])
-            old = text(p)
-            owned = item["block"]
-            if owned not in old and BEGIN in old:
+            old = current(p)
+            if item["block"] not in old and BEGIN in old:
                 raise ValueError(f"Owned shell block was edited; remove it manually: {p}")
-            changes.append((p, old, old.replace(owned, "", 1)))
+            pending[p] = old.replace(item["block"], "", 1)
+
+    migrating = False
+    if uninstall:
+        group, hp = previous["hook_group"], Path(previous["hooks_path"])
+        remove_previous()
     else:
         cfg = tomllib.loads(text(chome / "config.toml"))
         hook_config = cfg.get("hooks", {})
@@ -206,40 +239,37 @@ def installation(args, uninstall=False):
             )
         group = hook_group()
         hp = chome / "hooks.json"
-        old = text(hp)
-        changes.append((hp, old, modify_hook(old, group, True)))
+        # An older install from another path (e.g. a git checkout before uv/pipx):
+        # swap it out in the same reviewed diff instead of asking for an uninstall first.
+        migrating = bool(previous) and (
+            previous.get("hook_group") != group or previous.get("hooks_path") != str(hp)
+        )
+        if migrating:
+            print("Replacing a previous codex-statusline installation from another path.")
+            remove_previous()
+        pending[hp] = modify_hook(current(hp), group, True)
         for p in shells:
             block = shell_block("fish" if p.suffix == ".fish" else "zsh")
-            old = text(p)
+            old = current(p)
             if BEGIN in old and block not in old:
                 raise ValueError(
                     f"A different/edited codex-statusline block exists in {p}; "
                     "uninstall that version first."
                 )
-            changes.append((p, old, old if block in old else old + block))
-        if previous and (
-            previous.get("hook_group") != group or previous.get("hooks_path") != str(hp)
-        ):
-            raise ValueError(
-                "Existing installation uses another project/hook path. Uninstall it first."
-            )
+            pending[p] = old if block in old else old + block
         allowed = paths(args.home, "all")[1]
         if any(Path(x["path"]) not in allowed for x in previous.get("shells", [])):
             raise ValueError("Existing manifest contains unexpected shell paths.")
+    changes = [(p, text(p), new) for p, new in pending.items()]
     changed = [(p, old, new) for p, old, new in changes if old != new]
-    for p, old, new in changed:
-        print(
-            "".join(
-                difflib.unified_diff(
-                    old.splitlines(True),
-                    new.splitlines(True),
-                    fromfile=str(p),
-                    tofile=str(p),
-                    n=0,
-                )
-            ),
-            end="",
-        )
+    if changed:
+        print(summary(changed, Path(args.home).expanduser()))
+    if changed and (getattr(args, "diff", False) or args.dry_run):
+        for p, old, new in changed:
+            diff = difflib.unified_diff(
+                old.splitlines(True), new.splitlines(True), str(p), str(p), n=0
+            )
+            print("".join(diff), end="")
     if args.dry_run:
         print("Dry run: no files written.")
         return 0
@@ -252,7 +282,12 @@ def installation(args, uninstall=False):
         print("Already installed; no configuration changes.")
         return 0
     if not args.yes:
-        if not sys.stdin.isatty() or input("Apply these changes? [y/N] ").strip().lower() != "y":
+        hint = "" if getattr(args, "diff", False) else "  (--diff shows the exact changes)"
+        if not sys.stdin.isatty() or input(f"Apply?{hint} [Y/n] ").strip().lower() not in (
+            "",
+            "y",
+            "yes",
+        ):
             print("No files changed.")
             return 0
     # Refuse symlinks for edited files. User must explicitly manage those targets.
@@ -284,7 +319,8 @@ def installation(args, uninstall=False):
         if uninstall:
             manifest_path.unlink(missing_ok=True)
         else:
-            owned = {item["path"]: item for item in previous.get("shells", [])}
+            kept = [] if migrating else previous.get("shells", [])
+            owned = {item["path"]: item for item in kept}
             for p in shells:
                 owned[str(p)] = {
                     "path": str(p),
@@ -306,10 +342,10 @@ def installation(args, uninstall=False):
                 p.unlink(missing_ok=True)
         raise
     print(
-        "Uninstalled. Open a fresh terminal (existing shell functions remain until then)."
+        "Uninstalled. Open a new terminal to finish."
         if uninstall
-        else "Installed. Open a fresh terminal, run codex, and review/trust "
-        "the codex-statusline hook in the official UI."
+        else "Installed. Open a new terminal and run codex; trust the "
+        f"'{STATUS_MESSAGE}' hook when Codex asks."
     )
-    print(f"Configuration change backup: {backup}")
+    print(f"Backup: {tilde(backup, Path(args.home).expanduser())}")
     return 0

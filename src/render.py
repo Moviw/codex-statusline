@@ -35,11 +35,15 @@ _CONFIG_DEFAULTS = {
 }
 
 
+def config_path() -> Path:
+    base = os.environ.get("XDG_CONFIG_HOME") or str(Path.home() / ".config")
+    return Path(base) / "codex-statusline" / "config.toml"
+
+
 def load_config(path: str | os.PathLike | None = None) -> dict[str, Any]:
     """Read $XDG_CONFIG_HOME/codex-statusline/config.toml; invalid values fall back to defaults."""
     if path is None:
-        base = os.environ.get("XDG_CONFIG_HOME") or str(Path.home() / ".config")
-        path = Path(base) / "codex-statusline" / "config.toml"
+        path = config_path()
     config = dict(_CONFIG_DEFAULTS)
     try:
         raw = tomllib.loads(Path(path).read_text())

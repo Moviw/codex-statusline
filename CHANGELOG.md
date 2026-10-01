@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.4
+
+- `codex-statusline config`: pick segments and their order, theme, thresholds, and the update notice in an interactive screen with a live preview. No more hand-editing config.toml.
+- Install and uninstall print a short summary of which files change; `--diff` shows the exact changes. The prompt now defaults to yes.
+- Installing from a new path (e.g. moving from a local checkout to uv/pipx) replaces the previous install in one step.
+- `codex-statusline update` always fetches the latest release from PyPI, including tools first installed from a local checkout.
+
 ## 0.1.3
 
 - Quota appears on the very first frame when `codex` starts, read from your local Codex sessions.
