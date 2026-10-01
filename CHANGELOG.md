@@ -1,9 +1,17 @@
 # Changelog
 
-## 0.2.3
+## 0.3.0
 
-- New short command `cxbar`, the same as `codex-statusline`: `cxbar config`, `cxbar update`, `cxbar doctor`.
-- The update notice suggests `cxbar update`.
+A big one. Highlights since 0.1:
+
+- **`cxbar`**: a short command for everything besides `codex` itself: `cxbar config`, `cxbar update`, `cxbar doctor`. `codex-statusline` keeps working.
+- **`cxbar config`**: choose segments and their order, theme, color thresholds, and the update notice in an interactive screen with a live preview.
+- **Smooth scrolling**: the mouse wheel scrolls the conversation exactly like plain Codex.
+- **Update notice**: every `codex` launch checks for a new release in the background and the bar shows `↑ update available: cxbar update`; one command upgrades, whichever way you installed.
+- **Quota from the first frame**, refreshed to 100% the moment a window resets, read from the freshest of your local Codex sessions.
+- **Every plan**: weekly-only plans show just the weekly window.
+- **Follows your terminal**: the default `auto` theme fits light and dark backgrounds.
+- **Friendlier install**: a short summary of which files change (`--diff` for details), and installing from a new path replaces the old install in one step.
 
 ## 0.2.2
 
