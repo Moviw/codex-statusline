@@ -38,7 +38,7 @@ Prefer to do it yourself:
 
 ```sh
 uv tool install codex-statusline    # or: pipx install codex-statusline
-codex-statusline install            # add --dry-run to see the plan first
+cxbar install                       # add --dry-run to see the plan first
 ```
 
 Then **open a new terminal** and run `codex`. The first time, Codex asks you to review a hook: confirm it is `codex-statusline binding`.
@@ -52,17 +52,19 @@ codex                     # same as always, now with a status bar
 codex resume --last
 codex exec 'task'         # non-interactive: passed straight through, no bar
 
-codex-statusline config   # pick segments, theme and colors interactively
-codex-statusline update   # upgrade, whichever way you installed it
-codex-statusline doctor   # check versions and dependencies
-codex-statusline uninstall
+cxbar config              # pick segments, theme and colors interactively
+cxbar update              # upgrade, whichever way you installed it
+cxbar doctor              # check your setup; prints the fix for anything wrong
+cxbar uninstall
 ```
+
+`cxbar` is the short name for `codex-statusline`; both work.
 
 Uninstall removes only what this tool added and still matches exactly. If you edited its block, it stops instead of overwriting. Backups live in `~/.local/share/codex-statusline/`.
 
 ## Configuration
 
-Run `codex-statusline config` to set everything up in an interactive screen with a live preview: toggle and reorder segments, switch theme, set the warning thresholds, then press `s` to save.
+Run `cxbar config` to set everything up in an interactive screen with a live preview: toggle and reorder segments, switch theme, set the warning thresholds, then press `s` to save.
 
 ```text
   [x] ctx     context used

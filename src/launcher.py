@@ -143,19 +143,6 @@ def binding_for(bindings, hint, launch_id):
     return candidates[0] if len(candidates) == 1 else None
 
 
-def branch(cwd):
-    try:
-        p = subprocess.run(
-            ["git", "-C", cwd, "symbolic-ref", "--quiet", "--short", "HEAD"],
-            capture_output=True,
-            text=True,
-            timeout=0.7,
-        )
-        return p.stdout.strip() if p.returncode == 0 else None
-    except (OSError, subprocess.TimeoutExpired):
-        return None
-
-
 def placeholder(width=80):
     """Use the normal layout before telemetry arrives or while it is unavailable."""
     from .data import newest_quotas, sessions_dir
@@ -216,6 +203,10 @@ def launch(args):
         "set -g allow-rename off\n"
         "set -g set-titles off\n"
         "set -g mouse on\n"
+        # Every key belongs to Codex: no prefix (Ctrl-B), no wait after Esc.
+        "set -g prefix None\n"
+        "unbind C-b\n"
+        "set -s escape-time 10\n"
         "set -g history-limit 10000\n"
         "set -g remain-on-exit on\n"
         "set -g exit-empty on\n"
@@ -255,7 +246,6 @@ def launch(args):
                 target=lambda: latest.update(version=newer_version()), daemon=True
             ).start()
         sessions, readers, others, scan_at = sessions_dir(), {}, {}, 0.0
-        last_branch, branch_at = None, 0
         last_line = None
         while not stop.is_set():
             try:
@@ -292,9 +282,6 @@ def launch(args):
                 state["quotas"] = merge_quotas(state["quotas"], others)
                 state["update"] = latest.get("version")
                 state["updater"] = updater
-                if time.monotonic() - branch_at > 3:
-                    last_branch, branch_at = branch(state["cwd"]), time.monotonic()
-                state["branch"] = last_branch
                 line = render(
                     state,
                     int(width or 80),

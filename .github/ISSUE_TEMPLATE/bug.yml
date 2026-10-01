@@ -10,9 +10,9 @@ body:
       required: true
   - type: textarea
     attributes:
-      label: codex-statusline doctor
-      description: Paste the output of `codex-statusline doctor`.
-      render: json
+      label: cxbar doctor
+      description: Paste the output of `cxbar doctor` (or `codex-statusline doctor`).
+      render: text
     validations:
       required: true
   - type: input

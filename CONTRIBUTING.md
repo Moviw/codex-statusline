@@ -1,6 +1,6 @@
 # Contributing
 
-Issues and PRs welcome. For bugs, include `codex-statusline doctor` output.
+Issues and PRs welcome. For bugs, include `cxbar doctor` output.
 
 ```sh
 git clone https://github.com/Moviw/codex-statusline && cd codex-statusline

@@ -24,8 +24,8 @@ def is_newer(latest: str, current: str = __version__) -> bool:
     return bool(_parse(latest)) and _parse(latest) > _parse(current)
 
 
-def newer_version(timeout: float = 2) -> str | None:
-    """Latest release if newer than this one; None on any failure. Sends only a plain GET."""
+def latest_version(timeout: float = 2) -> str | None:
+    """Latest release on PyPI; None on any failure. Sends only a plain GET."""
     try:
         request = urllib.request.Request(
             PYPI, headers={"User-Agent": f"codex-statusline/{__version__}"}
@@ -34,7 +34,13 @@ def newer_version(timeout: float = 2) -> str | None:
             latest = json.load(response)["info"]["version"]
     except Exception:
         return None
-    return latest if isinstance(latest, str) and is_newer(latest) else None
+    return latest if isinstance(latest, str) else None
+
+
+def newer_version(timeout: float = 2) -> str | None:
+    """Latest release if newer than this one; None otherwise or on any failure."""
+    latest = latest_version(timeout)
+    return latest if latest and is_newer(latest) else None
 
 
 def upgrade_command(prefix: str = sys.prefix, package: Path = PACKAGE) -> list[str]:

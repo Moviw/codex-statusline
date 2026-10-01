@@ -38,7 +38,7 @@ curl -fsSL https://raw.githubusercontent.com/Moviw/codex-statusline/main/install
 
 ```sh
 uv tool install codex-statusline    # 或 pipx install codex-statusline
-codex-statusline install            # 加 --dry-run 只看差异
+cxbar install                       # 加 --dry-run 先看会改什么
 ```
 
 然后**打开一个新终端**运行 `codex`。第一次 Codex 会提示审核 hook，确认是 `codex-statusline binding` 即可。
@@ -52,17 +52,19 @@ codex                     # 照常使用，多了底栏
 codex resume --last
 codex exec 'task'         # 非交互命令直接透传，不显示底栏
 
-codex-statusline config   # 交互式选择显示段、主题和配色
-codex-statusline update   # 升级（自动识别安装方式）
-codex-statusline doctor   # 检查版本与依赖
-codex-statusline uninstall
+cxbar config              # 交互式选择显示段、主题和配色
+cxbar update              # 升级（自动识别安装方式）
+cxbar doctor              # 检查安装状态，有问题会给出修复命令
+cxbar uninstall
 ```
+
+`cxbar` 是 `codex-statusline` 的简写，两个命令完全等价。
 
 卸载只移除本工具添加、且仍原样匹配的配置；如果你改过它的区块，会停止而不覆盖。备份在 `~/.local/share/codex-statusline/`。
 
 ## 配置
 
-运行 `codex-statusline config`，在交互界面里一边预览一边配置：开关和排序显示段、切换主题、设置变色阈值，按 `s` 保存。
+运行 `cxbar config`，在交互界面里一边预览一边配置：开关和排序显示段、切换主题、设置变色阈值，按 `s` 保存。
 
 ```text
   [x] ctx     context used

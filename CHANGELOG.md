@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.1
+
+- `cxbar doctor` is a checklist with the fix for each problem: Codex and tmux versions, whether `codex` runs this copy, whether Codex approved the hook, and whether an update is out.
+- Esc reaches Codex instantly (was delayed by half a second) and Ctrl-B works inside Codex.
+- `cxbar -V` / `-v` print the version.
+- The bar no longer polls git every few seconds.
+
 ## 0.3.0
 
 A big one. Highlights since 0.1:

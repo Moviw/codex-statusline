@@ -1,7 +1,4 @@
 import argparse
-import json
-import os
-import shutil
 import sys
 from pathlib import Path
 
@@ -10,7 +7,7 @@ from . import __version__
 
 def main():
     args = sys.argv[1:]
-    from .launcher import child, launch, official, raw, version
+    from .launcher import child, launch, raw
 
     if args and args[0] in ("launch", "raw"):
         try:
@@ -29,7 +26,7 @@ def main():
         description="A status bar for Codex CLI: context, 5h/weekly quota, and tokens. "
         "Run `codex` as usual once installed.",
     )
-    parser.add_argument("--version", action="version", version=__version__)
+    parser.add_argument("-V", "-v", "--version", action="version", version=__version__)
     sub = parser.add_subparsers(dest="action", required=True, metavar="<command>", title="commands")
     commands = {
         "install": "hook the status bar into `codex` for your shells",
@@ -68,18 +65,9 @@ def main():
 
             return update()
         if ns.action == "doctor":
-            path = official()
-            data = {
-                "python": sys.version.split()[0],
-                "codex": path,
-                "codex_version": ".".join(map(str, version(path))),
-                "tmux": shutil.which("tmux"),
-                "shell": os.environ.get("SHELL"),
-                "tested_codex": "0.159.0",
-                "credentials_read": False,
-            }
-            print(json.dumps(data, indent=2))
-            return 0 if data["tmux"] and version(path) >= (0, 159, 0) else 1
+            from .doctor import doctor
+
+            return doctor()
     except (OSError, ValueError, RuntimeError, KeyError) as error:
         print(f"codex-statusline: {error}", file=sys.stderr)
         return 1
