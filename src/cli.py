@@ -16,6 +16,15 @@ def main():
             return 130
     if args and args[0] == "_child":
         return child(args[1])
+    if args and args[0] == "claude":  # run by Claude Code's statusLine setting
+        from .claude import statusline
+
+        return statusline()
+    if args and args[0] == "_refresh-update":
+        from .update import refresh_cache
+
+        refresh_cache()
+        return 0
     if args and args[0] == "hook":
         from .hook import record
 
@@ -49,6 +58,12 @@ def main():
         s.add_argument("--home", default=str(Path.home()), help=argparse.SUPPRESS)  # tests
         s.add_argument("--yes", action="store_true", help="apply without asking")
         s.add_argument("--diff", action="store_true", help="show the exact file changes")
+        if name == "install":
+            s.add_argument(
+                "--claude",
+                action="store_true",
+                help="use this bar in Claude Code even if another statusLine is set",
+            )
         s.add_argument("--dry-run", action="store_true", help="show the plan, change nothing")
     ns = parser.parse_args(args)
     try:

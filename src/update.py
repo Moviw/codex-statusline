@@ -1,9 +1,11 @@
 """Check PyPI for a newer release and upgrade with whatever installed this copy."""
 
 import json
+import os
 import shutil
 import subprocess
 import sys
+import time
 import urllib.request
 from pathlib import Path
 
@@ -41,6 +43,55 @@ def newer_version(timeout: float = 2) -> str | None:
     """Latest release if newer than this one; None otherwise or on any failure."""
     latest = latest_version(timeout)
     return latest if latest and is_newer(latest) else None
+
+
+CACHE_AGE = 6 * 3600
+
+
+def cache_path() -> Path:
+    base = os.environ.get("XDG_CACHE_HOME") or str(Path.home() / ".cache")
+    return Path(base) / "codex-statusline" / "latest.json"
+
+
+def refresh_cache() -> None:
+    latest = latest_version()
+    if latest is None:
+        return
+    path = cache_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temp = path.with_suffix(".tmp")
+    temp.write_text(json.dumps({"checked": time.time(), "latest": latest}))
+    os.replace(temp, path)
+
+
+def cached_newer_version() -> str | None:
+    """For commands that run often (Claude's statusLine): never wait on the network.
+
+    Uses the cached answer and, when it is older than CACHE_AGE, refreshes it in a
+    detached background process for next time.
+    """
+    try:
+        cached = json.loads(cache_path().read_text())
+        latest, checked = cached.get("latest"), float(cached.get("checked", 0))
+    except (OSError, ValueError, TypeError, AttributeError):
+        latest, checked = None, 0.0
+    if time.time() - checked > CACHE_AGE:
+        try:
+            cache_path().parent.mkdir(parents=True, exist_ok=True)
+            # Mark as checked now so concurrent refreshes do not pile up.
+            stamp = cache_path().with_suffix(".tmp")
+            stamp.write_text(json.dumps({"checked": time.time(), "latest": latest}))
+            os.replace(stamp, cache_path())
+            subprocess.Popen(
+                [sys.executable, str(PACKAGE / "entry.py"), "_refresh-update"],
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                start_new_session=True,
+            )
+        except OSError:
+            pass
+    return latest if isinstance(latest, str) and is_newer(latest) else None
 
 
 def upgrade_command(prefix: str = sys.prefix, package: Path = PACKAGE) -> list[str]:

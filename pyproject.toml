@@ -1,12 +1,12 @@
 [project]
 name = "codex-statusline"
-version = "0.4.2"
-description = "A tmux statusline for OpenAI Codex CLI: context usage, 5h and weekly quota, and session tokens at a glance. Local-only."
+version = "0.5.0"
+description = "Status bar for OpenAI Codex CLI and Claude Code: context usage, 5h and weekly quota with reset times, tokens, and cost at a glance. Local-only."
 requires-python = ">=3.11"
 license = "MIT"
 readme = "README.md"
 authors = [{ name = "Zimo Xu" }]
-keywords = ["codex", "codex-cli", "openai", "statusline", "tmux", "quota", "tokens", "terminal"]
+keywords = ["codex", "codex-cli", "openai", "claude-code", "claude", "statusline", "tmux", "quota", "tokens", "terminal"]
 classifiers = [
     "Environment :: Console",
     "Operating System :: MacOS",

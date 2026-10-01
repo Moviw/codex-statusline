@@ -30,6 +30,14 @@ Quotas are accepted only from `token_count` events whose window is exactly 300 o
 
 All state is stripped of control characters and escaped for tmux. Official args are passed as an argv array, never spliced into a shell string. The tmux status format uses `#{status-left}` and never recursively expands format commands found in state.
 
+## Claude Code
+
+Claude Code has a native `statusLine` setting that runs a command and shows its output. `cxbar install` sets it to `cxbar claude` when `~/.claude` (or `$CLAUDE_CONFIG_DIR`) exists. On each update Claude Code pipes session JSON to that command: context percentage, token totals, the cache split of the latest request, `rate_limits.five_hour` / `seven_day` (subscriptions only), and `cost.total_cost_usd`. The command maps that onto the same renderer as the Codex bar and prints two ANSI-colored lines. No tmux, hook, or log reading is involved, and nothing beyond that JSON is read.
+
+Without `rate_limits` (API-key accounts) the quota segments are left out rather than shown as `--`. Because the command runs often, the update check uses a cached answer and refreshes it at most every six hours in a detached background process.
+
+An existing `statusLine` is never replaced unless `cxbar install --claude` asks for it; the replaced value is kept in the install manifest and restored by `cxbar uninstall`, which otherwise removes only the entry it added.
+
 ## Configuration transactions
 
 Install shows a diff and asks before writing. Unrelated keys and hooks in `hooks.json` are preserved (JSON formatting may be normalized). If `config.toml` defines inline hooks (beyond trust state), install refuses to mix sources rather than migrating them silently.

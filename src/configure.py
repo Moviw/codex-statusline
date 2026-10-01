@@ -22,6 +22,7 @@ SEGMENT_NAMES = {
 }
 LINE2_NAMES = {
     "usage": "line 2: tokens in / cached / out",
+    "cost": "line 2: session cost estimate (Claude Code)",
     "pace": "line 2: when quota runs out at this pace",
 }
 SETTINGS = ["theme", "ascii", "warn_at", "crit_at", "update_check"]

@@ -44,12 +44,14 @@ def available_shells():
 
 def base_command():
     # Installed via uv/pipx: the tool's bin shim survives upgrades; site-packages paths do not.
+    # Prefer the shim next to whatever was run (`codex-statusline` or `cxbar`): another
+    # copy earlier on PATH may be an older install.
     invoked = Path(sys.argv[0])
-    tool = (
-        str(invoked)
-        if invoked.name == "codex-statusline" and invoked.is_file()
-        else shutil.which("codex-statusline")
-    )
+    sibling = invoked.with_name("codex-statusline")
+    if invoked.name in ("codex-statusline", "cxbar") and sibling.is_file():
+        tool = str(sibling)
+    else:
+        tool = shutil.which("codex-statusline")
     if tool and "site-packages" in ENTRY.parts:
         return [os.path.abspath(tool)]
     return [sys.executable, str(ENTRY)]
@@ -168,10 +170,45 @@ def modify_hook(raw, group, add):
     return json.dumps(obj, ensure_ascii=False, indent=2) + "\n"
 
 
+def claude_settings(home):
+    base = os.environ.get("CLAUDE_CONFIG_DIR") or str(Path(home).expanduser() / ".claude")
+    return Path(base).expanduser() / "settings.json"
+
+
+def claude_status_line():
+    return {"type": "command", "command": shlex.join([*base_command(), "claude"]), "padding": 0}
+
+
+def settings_object(raw, path):
+    try:
+        obj = json.loads(raw) if raw.strip() else {}
+    except ValueError as error:
+        raise ValueError(f"{path} is not valid JSON; fix it first ({error})") from None
+    if not isinstance(obj, dict):
+        raise ValueError(f"{path} must be a JSON object")
+    return obj
+
+
 def summary(changed, home):
     """One line per file: what is added or removed, in words rather than a diff."""
     lines = ["codex-statusline will:"]
     for p, old, new in changed:
+        if p.name == "settings.json":
+            before, after = (settings_object(t, p).get("statusLine") for t in (old, new))
+            ours = isinstance(after, dict) and str(after.get("command", "")).endswith(" claude")
+            if ours and before is None:
+                sign, verb = "+", "add the Claude Code statusLine"
+            elif ours:
+                sign, verb = "~", "switch the Claude Code statusLine to this bar"
+            else:
+                sign, verb = (
+                    "-",
+                    "restore your previous Claude Code statusLine"
+                    if after
+                    else ("remove the Claude Code statusLine"),
+                )
+            lines.append(f"  {sign} {tilde(p, home):<44} {verb}")
+            continue
         what = "the SessionStart hook" if p.name == "hooks.json" else "the codex shell function"
         if p.name == "hooks.json":  # JSON is re-serialized, so compare our marker instead
             had, has = (STATUS_MESSAGE in t for t in (old, new))
@@ -224,7 +261,18 @@ def installation(args, uninstall=False):
             if item["block"] not in old and BEGIN in old:
                 raise ValueError(f"Owned shell block was edited; remove it manually: {p}")
             pending[p] = old.replace(item["block"], "", 1)
+        if claude:  # put back whatever statusLine Claude Code had before us
+            cp = Path(claude["path"])
+            obj = settings_object(current(cp), cp)
+            if obj.get("statusLine") == claude["status_line"]:
+                if claude.get("previous") is None:
+                    obj.pop("statusLine")
+                else:
+                    obj["statusLine"] = claude["previous"]
+                pending[cp] = json.dumps(obj, indent=2) + "\n"
 
+    claude = previous.get("claude")
+    claude_entry, notes = None, []
     migrating = False
     if uninstall:
         group, hp = previous["hook_group"], Path(previous["hooks_path"])
@@ -257,6 +305,24 @@ def installation(args, uninstall=False):
                     "uninstall that version first."
                 )
             pending[p] = old if block in old else old + block
+        cp = claude_settings(args.home)
+        if cp.parent.is_dir():  # Claude Code is installed: show the same bar there
+            obj = settings_object(current(cp), cp)
+            existing, ours = obj.get("statusLine"), claude_status_line()
+            # Never replace another statusLine unless asked, or it was ours before a move.
+            replace = getattr(args, "claude", False) or (migrating and claude)
+            if existing == ours:
+                kept = (claude or {}).get("previous")
+                claude_entry = {"path": str(cp), "status_line": ours, "previous": kept}
+            elif existing is None or replace:
+                obj["statusLine"] = ours
+                pending[cp] = json.dumps(obj, indent=2) + "\n"
+                claude_entry = {"path": str(cp), "status_line": ours, "previous": existing}
+            else:
+                notes.append(
+                    f"  · {tilde(cp, Path(args.home).expanduser()):<44} keeps your current "
+                    "statusLine (run with --claude to use this bar)"
+                )
         allowed = paths(args.home, "all")[1]
         if any(Path(x["path"]) not in allowed for x in previous.get("shells", [])):
             raise ValueError("Existing manifest contains unexpected shell paths.")
@@ -264,6 +330,8 @@ def installation(args, uninstall=False):
     changed = [(p, old, new) for p, old, new in changes if old != new]
     if changed:
         print(summary(changed, Path(args.home).expanduser()))
+    for note in notes:
+        print(note)
     if changed and (getattr(args, "diff", False) or args.dry_run):
         for p, old, new in changed:
             diff = difflib.unified_diff(
@@ -332,6 +400,7 @@ def installation(args, uninstall=False):
                     "hook_group": group,
                     "hooks_path": str(hp),
                     "shells": list(owned.values()),
+                    "claude": claude_entry,
                 },
             )
     except Exception:

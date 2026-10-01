@@ -68,6 +68,20 @@ class InstallTests(unittest.TestCase):
             manage.installation(self.args, True)
         self.assertEqual((self.root / ".zshrc").read_text(), "# mine\n")
 
+    def test_cxbar_uses_its_own_shim_not_another_copy_on_path(self):
+        fake = Path("/venv/lib/python3.12/site-packages/src/entry.py")
+        bindir = self.root / "toolbin"
+        bindir.mkdir()
+        for name in ("codex-statusline", "cxbar"):
+            (bindir / name).write_text("#!/bin/sh\n")
+        older = "/usr/local/bin/codex-statusline"
+        with (
+            patch.object(manage, "ENTRY", fake),
+            patch.object(sys, "argv", [str(bindir / "cxbar"), "install"]),
+            patch("src.manage.shutil.which", return_value=older),
+        ):
+            self.assertEqual(manage.base_command(), [str(bindir / "codex-statusline")])
+
     def test_install_repeat_uninstall_preserves_later_changes(self):
         original = "# original rc\nexport USER_SETTING=yes\n"
         (self.root / ".zshrc").write_text(original)

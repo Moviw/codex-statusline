@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.5.0
+
+- **Claude Code support.** `cxbar install` also sets the bar as Claude Code's `statusLine` when it finds `~/.claude`, so `claude` shows the same two lines. No tmux needed there.
+  - Shows the session's estimated cost on the second line: `in 1.2M · 94% cached · out 44.0k · ≈$1.84`.
+  - Pro and Max accounts get 5h and weekly quota with reset times; API-key accounts get context, tokens, and cost.
+  - An existing statusLine is kept; `cxbar install --claude` switches to this bar, and `cxbar uninstall` restores the previous one.
+- New second-line segment `cost`, on by default (Claude Code only).
+- `cxbar doctor` reports whether Claude Code uses this bar.
+- Fix: `cxbar install` points hooks at its own copy even when an older install sits earlier on PATH.
+
 ## 0.4.2
 
 - Fix: progress bars render in terminals whose locale is not UTF-8 (common over ssh); they showed as blanks or `~` in the bar and as `�` in `cxbar config`.

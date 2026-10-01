@@ -32,9 +32,9 @@ _CONFIG_DEFAULTS = {
     "ascii": False,
     "warn_at": 20,
     "crit_at": 5,
-    "line2": ["usage"],
+    "line2": ["usage", "cost"],
 }
-LINE2_SEGMENTS = ["usage", "pace"]
+LINE2_SEGMENTS = ["usage", "cost", "pace"]
 
 
 def config_path() -> Path:
@@ -248,14 +248,12 @@ def _usage(state: dict) -> str:
     usage = state.get("usage")
     if not isinstance(usage, dict):
         return "in -- · out --"  # before the first turn
-    numbers = [
-        _number(usage.get(k)) for k in ("input_tokens", "cached_input_tokens", "output_tokens")
-    ]
-    if any(n is None or n < 0 for n in numbers):
+    given, output = _number(usage.get("input_tokens")), _number(usage.get("output_tokens"))
+    if given is None or output is None or given < 0 or output < 0:
         return "in -- · out --"
-    given, cached, output = numbers
+    cached = _number(usage.get("cached_input_tokens"))  # unknown -> not shown
     text = f"in {_si(given)}"
-    if given:
+    if given and cached is not None and cached >= 0:
         text += f" · {round(100 * min(cached, given) / given)}% cached"
     return text + f" · out {_si(output)}"
 
@@ -267,15 +265,20 @@ def render_line2(
     theme: str = "dark",
     ascii_only: bool = False,
     tmux: bool = True,
+    ansi: bool = False,
 ) -> str:
-    """Second line: token breakdown, then quota pace; drops parts from the end."""
+    """Second line: token breakdown and cost, then quota pace; drops parts from the end."""
     width = max(0, int(width))
     state = state if isinstance(state, dict) else {}
     now = _number(state.get("now")) or datetime.now().timestamp()
     quotas = state.get("quotas") if isinstance(state.get("quotas"), dict) else {}
     parts: list[tuple[str, str]] = []
-    if "usage" in line2:
-        parts.append((_usage(state), "accent"))
+    usage = _usage(state) if "usage" in line2 else None
+    cost = _number(state.get("cost")) if "cost" in line2 else None
+    if cost is not None and cost >= 0:  # Claude Code only; an estimate at list price
+        usage = f"{usage} · ≈${cost:.2f}" if usage else f"≈${cost:.2f}"
+    if usage:
+        parts.append((usage, "accent"))
     if "pace" in line2:
         for data, minutes, weekly in (
             (quotas.get("5h"), 300, False),
@@ -292,15 +295,18 @@ def render_line2(
     if not parts:
         return ""
     theme = theme if theme in THEMES else "dark"
-    return "  " + sep.join(_paint(text, theme, role, tmux) for text, role in parts)
+    return "  " + sep.join(_paint(text, theme, role, tmux, ansi) for text, role in parts)
 
 
-def _paint(text: str, theme: str, role: str, tmux: bool) -> str:
-    """Use only fixed, renderer-owned tmux style directives."""
+def _paint(text: str, theme: str, role: str, tmux: bool, ansi: bool = False) -> str:
+    """Use only fixed, renderer-owned style directives: tmux, ANSI (Claude Code), or none."""
+    palette = _PALETTES.get(theme, _PALETTES["dark"])
+    color = palette.get(role, palette["accent"])
+    if ansi:
+        return f"\x1b[38;5;{color.removeprefix('colour')}m{text}\x1b[0m"
     if not tmux:
         return text
-    palette = _PALETTES.get(theme, _PALETTES["dark"])
-    return f"#[fg={palette.get(role, palette['accent'])}]{text}#[default]"
+    return f"#[fg={color}]{text}#[default]"
 
 
 def _is_stale(data: Any, now: float) -> bool:
@@ -317,6 +323,7 @@ def render(
     segments: list[str] | None = None,
     warn_at: int = 20,
     crit_at: int = 5,
+    ansi: bool = False,
 ) -> str:
     """Render an untrusted status snapshot to one line no wider than *width*."""
     width = max(0, int(width))
@@ -348,6 +355,9 @@ def render(
     # Plans without a 5h (or weekly) limit report only the other window: hide the missing one.
     if (q5value is None) != (qwvalue is None):
         del known["5h" if q5value is None else "week"]
+    elif q5value is None and state.get("quota_optional"):
+        # Claude Code sends no rate limits for API-key users: no quota segments at all.
+        del known["5h"], known["week"]
     parts = [known[name] for name in (segments or DEFAULT_SEGMENTS) if name in known] or [
         known["ctx"]
     ]
@@ -388,7 +398,7 @@ def render(
     for index, (part, role) in enumerate(chosen):
         if index:
             out.append(sep)
-        out.append(_paint(part, theme, role, tmux))
+        out.append(_paint(part, theme, role, tmux, ansi))
     rendered = "".join(out)
     if visible_width(rendered) <= width:
         return rendered

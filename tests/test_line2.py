@@ -77,7 +77,7 @@ class Line2Tests(unittest.TestCase):
             path.write_text('line2 = ["pace", "usage"]\n')
             self.assertEqual(load_config(path)["line2"], ["pace", "usage"])
             path.write_text("")
-            self.assertEqual(load_config(path)["line2"], ["usage"])  # usage on by default
+            self.assertEqual(load_config(path)["line2"], ["usage", "cost"])  # on by default
             path.write_text('line2 = ["bogus"]\n')
             with unittest.mock.patch("sys.stderr"):
-                self.assertEqual(load_config(path)["line2"], ["usage"])  # invalid -> default
+                self.assertEqual(load_config(path)["line2"], ["usage", "cost"])  # invalid

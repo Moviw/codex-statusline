@@ -1,6 +1,6 @@
 # codex-statusline
 
-**一眼看清 Codex 的 context 和额度。**
+**一眼看清 Codex 和 Claude Code 的 context 与额度。**
 
 [![tests](https://github.com/Moviw/codex-statusline/actions/workflows/tests.yml/badge.svg)](https://github.com/Moviw/codex-statusline/actions/workflows/tests.yml)
 [![PyPI](https://img.shields.io/pypi/v/codex-statusline?label=PyPI)](https://pypi.org/project/codex-statusline/)
@@ -8,7 +8,7 @@
 
 [English](README.md) | 简体中文
 
-给 [OpenAI Codex CLI](https://github.com/openai/codex) 加一条底栏：context 已用比例、5 小时和周额度剩余（含重置时间）、本次会话 token 数。命令照旧是 `codex`。
+给 [OpenAI Codex CLI](https://github.com/openai/codex) 和 [Claude Code](https://code.claude.com) 加一条底栏：context 已用比例、5 小时和周额度剩余（含重置时间）、本次会话 token 数。命令照旧是 `codex` 和 `claude`。
 
 ![codex-statusline 演示](docs/demo.gif)
 
@@ -41,6 +41,20 @@ cxbar install                       # 加 --dry-run 先看会改什么
 
 没有 tmux？执行 `brew install tmux` 或 `sudo apt install tmux`。
 
+## Claude Code
+
+同一条底栏也能用在 [Claude Code](https://code.claude.com/docs/en/statusline) 里：`cxbar install` 检测到 `~/.claude` 时，会把它设为 Claude Code 的 `statusLine`，运行 `claude` 就能看到同样的两行，外加本次会话的花费：
+
+```text
+CTX USED ███░░░░░ 35% | 5h ██░░░░░░░░ 18% 3:46pm | week ██████░░░░ 62% Sat 1:46pm | tok 1.2M
+in 1.2M · 94% cached · out 44.0k · ≈$1.84
+```
+
+- **保留你原有的设置**：已经在用别的 statusLine？安装时不会覆盖；想换成这条就用 `cxbar install --claude`，`cxbar uninstall` 会把你原来的还回去。
+- **Claude 这边不需要 tmux**：Claude Code 直接把数据交给底栏。
+- **所有账号都能用**：Pro 和 Max 显示 5h 与周额度及重置时间；API key 用户显示 context、token 和花费。
+- **一份配置**：`cxbar config` 同时改两边的底栏。
+
 ## 使用
 
 ```sh
@@ -68,6 +82,7 @@ cxbar uninstall
   [x] week    weekly quota
   [x] tokens  session tokens
   [x] usage   line 2: tokens in / cached / out
+  [x] cost    line 2: session cost estimate (Claude Code)
   [ ] pace    line 2: when quota runs out at this pace
 > Theme            < auto >
   ASCII only       [ ]
@@ -80,12 +95,13 @@ Preview (sample numbers):
     in 1.2M · 94% cached · out 44.0k
 ```
 
-第二行有两项：
+第二行有三项：
 
 - `usage`（默认打开）：发送的 token 数、其中命中缓存的比例、生成的 token 数。
+- `cost`（默认打开）：按标价估算的本次会话花费，仅 Claude Code 有。
 - `pace`（默认关闭）：按目前的使用速度，5h 和周额度会在什么时候用完，例如 `week pace: runs out ~Tue 1:27am`；撑得到重置时显示 `lasts to reset`。
 
-两项都关掉，就只显示一行。
+全部关掉，就只显示一行。
 
 配置保存在 `~/.config/codex-statusline/config.toml`，也可以直接手动编辑：
 
@@ -96,7 +112,7 @@ ascii = false      # 终端不支持方块字符时设为 true
 warn_at = 20       # 额度剩余低于该百分比变黄
 crit_at = 5        # 额度剩余低于该百分比变红
 update_check = true  # 有新版本时在底栏显示 "↑ update available"
-line2 = ["usage"]  # 第二行："usage"、"pace"、两者都要，或 [] 不显示
+line2 = ["usage", "cost"]  # 第二行："usage"、"cost"、"pace" 任选，[] 不显示
 ```
 
 非法值会提示并回退到默认值。

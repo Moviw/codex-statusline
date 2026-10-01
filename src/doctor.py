@@ -8,7 +8,15 @@ from pathlib import Path
 
 from . import __version__
 from .launcher import official, version
-from .manage import STATUS_MESSAGE, hook_group, paths, text, tilde
+from .manage import (
+    STATUS_MESSAGE,
+    claude_settings,
+    claude_status_line,
+    hook_group,
+    paths,
+    text,
+    tilde,
+)
 from .update import is_newer, latest_version
 
 
@@ -85,7 +93,26 @@ def checks(home: Path, latest=latest_version) -> list[tuple[bool | None, str, st
                 f"start codex, approve '{STATUS_MESSAGE}'",
             )
         )
-    return out + [_update_check(cmd, latest)]
+    return out + _claude_check(home, cmd) + [_update_check(cmd, latest)]
+
+
+def _claude_check(home: Path, cmd: str) -> list[tuple[bool | None, str, str | None]]:
+    path = claude_settings(home)
+    if not path.parent.is_dir():
+        return []
+    try:
+        current = json.loads(text(path) or "{}").get("statusLine")
+    except (ValueError, AttributeError):
+        return [
+            (False, f"{tilde(path, home)} is not valid JSON", "fix it, then: " + cmd + " install")
+        ]
+    if current == claude_status_line():
+        return [(True, "Claude Code shows this bar", None)]
+    if current:
+        return [
+            (None, "Claude Code uses another statusLine (cxbar install --claude to switch)", None)
+        ]
+    return [(False, "Claude Code is not set up yet", f"{cmd} install")]
 
 
 def item_block(manifest: dict, path: Path) -> str:

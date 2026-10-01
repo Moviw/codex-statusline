@@ -17,13 +17,14 @@ class ConfigureTests(unittest.TestCase):
         row = apply(m, 3, "space")  # turn tokens off
         row = apply(m, 1, "J")  # move 5h below week
         self.assertEqual(row, 2)
-        apply(m, 6, "right")  # theme auto -> dark
-        apply(m, 8, "left")  # warn_at 20 -> 15
-        apply(m, 9, "left")  # crit_at 5 -> 0
-        apply(m, 9, "left")  # clamps at 0
-        apply(m, 10, "space")  # update notice off
+        apply(m, 7, "right")  # theme auto -> dark
+        apply(m, 9, "left")  # warn_at 20 -> 15
+        apply(m, 10, "left")  # crit_at 5 -> 0
+        apply(m, 10, "left")  # clamps at 0
+        apply(m, 11, "space")  # update notice off
         apply(m, 4, "space")  # line 2: usage (on by default) -> off
-        apply(m, 5, "space")  # line 2: pace on
+        apply(m, 5, "space")  # line 2: cost (on by default) -> off
+        apply(m, 6, "space")  # line 2: pace on
         cfg = to_config(m)
         self.assertEqual(cfg["line2"], ["pace"])
         self.assertEqual(cfg["segments"], ["ctx", "week", "5h"])

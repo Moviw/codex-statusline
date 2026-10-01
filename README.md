@@ -1,6 +1,6 @@
 # codex-statusline
 
-**See your Codex context and quota at a glance.**
+**See your Codex and Claude Code context and quota at a glance.**
 
 [![tests](https://github.com/Moviw/codex-statusline/actions/workflows/tests.yml/badge.svg)](https://github.com/Moviw/codex-statusline/actions/workflows/tests.yml)
 [![PyPI](https://img.shields.io/pypi/v/codex-statusline?label=PyPI)](https://pypi.org/project/codex-statusline/)
@@ -8,7 +8,7 @@
 
 English | [简体中文](README.zh-CN.md)
 
-A status bar for [OpenAI Codex CLI](https://github.com/openai/codex). It shows context used, 5-hour and weekly quota left with reset times, and session tokens. You keep running `codex` exactly as before.
+A status bar for [OpenAI Codex CLI](https://github.com/openai/codex) and [Claude Code](https://code.claude.com). It shows context used, 5-hour and weekly quota left with reset times, and session tokens. You keep running `codex` and `claude` exactly as before.
 
 ![codex-statusline demo](docs/demo.gif)
 
@@ -42,6 +42,20 @@ Then **open a new terminal** and run `codex`. The first time, Codex asks you to 
 
 Missing tmux? `brew install tmux` or `sudo apt install tmux`.
 
+## Claude Code
+
+The same bar works in [Claude Code](https://code.claude.com/docs/en/statusline): `cxbar install` sets it as Claude Code's `statusLine` when it finds `~/.claude`, so `claude` shows the same two lines, plus the session cost:
+
+```text
+CTX USED ███░░░░░ 35% | 5h ██░░░░░░░░ 18% 3:46pm | week ██████░░░░ 62% Sat 1:46pm | tok 1.2M
+in 1.2M · 94% cached · out 44.0k · ≈$1.84
+```
+
+- **Keeps what you have.** Already using another statusLine? Install leaves it alone; `cxbar install --claude` switches, and `cxbar uninstall` puts yours back.
+- **No tmux needed** on the Claude side: Claude Code passes the numbers to the bar directly.
+- **Every account.** Pro and Max see 5h and weekly quota with reset times; API-key users see context, tokens, and cost.
+- **One config.** `cxbar config` changes the bar in both tools.
+
 ## Usage
 
 ```sh
@@ -69,6 +83,7 @@ Run `cxbar config` to set everything up in an interactive screen with a live pre
   [x] week    weekly quota
   [x] tokens  session tokens
   [x] usage   line 2: tokens in / cached / out
+  [x] cost    line 2: session cost estimate (Claude Code)
   [ ] pace    line 2: when quota runs out at this pace
 > Theme            < auto >
   ASCII only       [ ]
@@ -81,12 +96,13 @@ Preview (sample numbers):
     in 1.2M · 94% cached · out 44.0k
 ```
 
-The second line has two parts:
+The second line has three parts:
 
 - `usage` (on by default): tokens sent, how much of that hit the cache, and tokens generated.
+- `cost` (on by default): the session's estimated cost at list price. Claude Code only.
 - `pace` (off by default): when your 5h and weekly quota run out at the rate you have used them so far, e.g. `week pace: runs out ~Tue 1:27am`, or `lasts to reset`.
 
-Turn both off to keep a single line.
+Turn them all off to keep a single line.
 
 It writes `~/.config/codex-statusline/config.toml`, which you can also edit by hand:
 
@@ -97,7 +113,7 @@ ascii = false      # true for terminals without block glyphs
 warn_at = 20       # quota remaining % that turns yellow
 crit_at = 5        # quota remaining % that turns red
 update_check = true  # show "↑ update available" in the bar when one is out
-line2 = ["usage"]  # second line: "usage", "pace", both, or [] for none
+line2 = ["usage", "cost"]  # second line: any of "usage", "cost", "pace"; [] for none
 ```
 
 Invalid values are reported and fall back to defaults.
