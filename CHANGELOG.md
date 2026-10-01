@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- `cxbar update` prints the command it runs before that command's own output.
+
 ## 0.7.0
 
 - **git on the second line**, on by default in both Codex and Claude Code: `⎇ main +42 -10` shows the branch and the lines added and removed since the last commit. New files the agent created count too (text files only, `.gitignore` respected). Hidden outside a git repo; a detached HEAD shows the short commit.

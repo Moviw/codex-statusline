@@ -122,7 +122,7 @@ def check(latest=latest_version) -> int:
 
 def update() -> int:
     command = upgrade_command()
-    print("$ " + " ".join(command))
+    print("$ " + " ".join(command), flush=True)  # before the tool's own output
     if not shutil.which(command[0]):
         print(
             f"codex-statusline: {command[0]} not found; run the command above yourself.",
