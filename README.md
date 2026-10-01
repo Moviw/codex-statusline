@@ -38,7 +38,7 @@ Prefer to do it yourself:
 
 ```sh
 uv tool install codex-statusline    # or: pipx install codex-statusline
-codex-statusline install            # add --dry-run to only preview the diff
+codex-statusline install            # add --dry-run to see the plan first
 ```
 
 Then **open a new terminal** and run `codex`. The first time, Codex asks you to review a hook: confirm it is `codex-statusline binding`.
@@ -55,7 +55,6 @@ codex exec 'task'         # non-interactive: passed straight through, no bar
 codex-statusline config   # pick segments, theme and colors interactively
 codex-statusline update   # upgrade, whichever way you installed it
 codex-statusline doctor   # check versions and dependencies
-codex-statusline preview --width 80   # try it without launching Codex
 codex-statusline uninstall
 ```
 

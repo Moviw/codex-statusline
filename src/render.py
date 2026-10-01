@@ -278,7 +278,7 @@ def render(
     hint = None
     if isinstance(update, str) and re.fullmatch(r"\d+(\.\d+)*", update):
         arrow = "^" if ascii_only else "↑"
-        hint = (f"{arrow} {update} run: codex-statusline update", f"{arrow}{update}", "warning")
+        hint = (f"{arrow} update available: codex-statusline update", f"{arrow} update", "warning")
     head, rest = parts[0], parts[1:]
     compact_head = (head[1], head[2])
     # Widest first: all detail, compact head, all compact, then drop segments.

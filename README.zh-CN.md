@@ -55,7 +55,6 @@ codex exec 'task'         # 非交互命令直接透传，不显示底栏
 codex-statusline config   # 交互式选择显示段、主题和配色
 codex-statusline update   # 升级（自动识别安装方式）
 codex-statusline doctor   # 检查版本与依赖
-codex-statusline preview --width 80   # 不启动 Codex 预览效果
 codex-statusline uninstall
 ```
 

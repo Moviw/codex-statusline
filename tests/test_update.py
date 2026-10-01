@@ -42,7 +42,7 @@ class UpdateTests(unittest.TestCase):
     def test_update_hint_is_dropped_first_when_narrow(self):
         state = {"context_used": 10, "now": 1000, "update": "0.2.0", "quotas": {}}
         wide = render(state, 240, tmux=False)
-        self.assertIn("↑ 0.2.0 run: codex-statusline update", wide)
-        self.assertIn("^0.2.0", render(state, 240, tmux=False, ascii_only=True).replace(" ", ""))
-        self.assertNotIn("0.2.0", render(state, 40, tmux=False))
-        self.assertNotIn("0.2.0", render(dict(state, update="#(evil)"), 240, tmux=False))
+        self.assertIn("↑ update available: codex-statusline update", wide)
+        self.assertIn("^ update available", render(state, 240, tmux=False, ascii_only=True))
+        self.assertNotIn("update", render(state, 40, tmux=False))
+        self.assertNotIn("update", render(dict(state, update="#(evil)"), 240, tmux=False))

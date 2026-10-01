@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.2
+
+- Clearer `codex-statusline --help`: one line per command.
+- Update notice reads `↑ update available: codex-statusline update` (`↑ update` on narrow terminals).
+- Removed the `preview` command; `codex-statusline config` shows a live preview.
+
 ## 0.2.1
 
 - Fix: the mouse wheel scrolls the conversation again, just like plain Codex, instead of recalling earlier prompts.
