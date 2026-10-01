@@ -43,6 +43,8 @@ class UpdateTests(unittest.TestCase):
         state = {"context_used": 10, "now": 1000, "update": "0.2.0", "quotas": {}}
         wide = render(state, 240, tmux=False)
         self.assertIn("↑ update available: codex-statusline update", wide)
+        short = render(dict(state, updater="cxbar"), 240, tmux=False)
+        self.assertIn("↑ update available: cxbar update", short)
         self.assertIn("^ update available", render(state, 240, tmux=False, ascii_only=True))
         self.assertNotIn("update", render(state, 40, tmux=False))
         self.assertNotIn("update", render(dict(state, update="#(evil)"), 240, tmux=False))

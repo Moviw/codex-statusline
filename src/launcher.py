@@ -247,6 +247,7 @@ def launch(args):
         cfg = load_config()
         reader = LogReader()
         latest = {}
+        updater = "cxbar" if shutil.which("cxbar") else "codex-statusline"
         if cfg["update_check"]:
             from .update import newer_version
 
@@ -290,6 +291,7 @@ def launch(args):
                     )
                 state["quotas"] = merge_quotas(state["quotas"], others)
                 state["update"] = latest.get("version")
+                state["updater"] = updater
                 if time.monotonic() - branch_at > 3:
                     last_branch, branch_at = branch(state["cwd"]), time.monotonic()
                 state["branch"] = last_branch

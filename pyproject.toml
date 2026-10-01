@@ -1,6 +1,6 @@
 [project]
 name = "codex-statusline"
-version = "0.2.2"
+version = "0.2.3"
 description = "A tmux statusline for OpenAI Codex CLI: context usage, 5h and weekly quota, and session tokens at a glance. Local-only."
 requires-python = ">=3.11"
 license = "MIT"
@@ -23,6 +23,7 @@ Changelog = "https://github.com/Moviw/codex-statusline/blob/main/CHANGELOG.md"
 
 [project.scripts]
 codex-statusline = "src.cli:main"
+cxbar = "src.cli:main"  # short alias
 
 [build-system]
 requires = ["setuptools>=77"]

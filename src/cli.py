@@ -25,7 +25,7 @@ def main():
         record()
         return 0
     parser = argparse.ArgumentParser(
-        prog="codex-statusline",
+        prog="cxbar" if Path(sys.argv[0]).name == "cxbar" else "codex-statusline",
         description="A status bar for Codex CLI: context, 5h/weekly quota, and tokens. "
         "Run `codex` as usual once installed.",
     )

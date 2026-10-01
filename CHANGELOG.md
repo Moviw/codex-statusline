@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.3
+
+- New short command `cxbar`, the same as `codex-statusline`: `cxbar config`, `cxbar update`, `cxbar doctor`.
+- The update notice suggests `cxbar update`.
+
 ## 0.2.2
 
 - Clearer `codex-statusline --help`: one line per command.
