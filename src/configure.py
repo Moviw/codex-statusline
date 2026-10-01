@@ -26,10 +26,11 @@ SEGMENT_NAMES = {
 LINE2_NAMES = {
     "usage": "tokens in / cached / out",
     "cost": "session cost estimate",
+    "git": "branch and uncommitted +/- lines",
     "pace": "when quota runs out at this pace",
 }
 # Codex reports no cost, so its screen does not offer it.
-LINE2_FOR = {"codex": ["usage", "pace"], "claude": LINE2_SEGMENTS}
+LINE2_FOR = {"codex": ["usage", "git", "pace"], "claude": LINE2_SEGMENTS}
 SETTINGS = ["theme", "ascii", "warn_at", "crit_at", "update_check"]
 LABELS = {
     "theme": "Theme",
@@ -161,6 +162,7 @@ def sample_state(target: str = "codex") -> dict:
             "weekly": {"remaining": 62, "reset_at": now + 172800, "observed_at": now},
         },
     }
+    state["git"] = {"branch": "main", "added": 42, "removed": 10}
     if target == "claude":
         state["cost"] = 1.84
     return state

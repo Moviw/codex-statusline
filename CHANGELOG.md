@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.0
+
+- **git on the second line**, on by default in both Codex and Claude Code: `⎇ main +42 -10` shows the branch and the lines added and removed since the last commit. New files the agent created count too (text files only, `.gitignore` respected). Hidden outside a git repo; a detached HEAD shows the short commit.
+- Never slows the bar: in Codex git runs in a background thread every 5 s, with timeouts.
+- Toggle it per tool in `cxbar config`, or with `line2` in config.toml.
+
 ## 0.6.0
 
 - **`cxbar config`, redesigned**: a colored live preview at the top, a green `▶` on the selected row, and bold sections.

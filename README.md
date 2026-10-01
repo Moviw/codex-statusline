@@ -85,7 +85,7 @@ Run `cxbar config` to set everything up in an interactive screen with a live, co
 
   Preview
     CTX USED ███░░░░░ 35% | 5h ██░░░░░░░░ 18% 3:46pm | week ██████░░░░ 62% Sat 1:46pm | tok 1.2M
-    in 1.2M · 94% cached · out 44.0k
+    in 1.2M · 94% cached · out 44.0k | ⎇ main +42 -10
 
   Line 1
 ▶ [x] ctx     context used
@@ -94,6 +94,7 @@ Run `cxbar config` to set everything up in an interactive screen with a live, co
   [x] tokens  session tokens
   Line 2
   [x] usage   tokens in / cached / out
+  [x] git     branch and uncommitted +/- lines
   [ ] pace    when quota runs out at this pace
   Style
   Theme            < auto >
@@ -103,10 +104,11 @@ Run `cxbar config` to set everything up in an interactive screen with a live, co
   Update notice    [x]
 ```
 
-The second line has three parts:
+The second line has four parts:
 
 - `usage` (on by default): tokens sent, how much of that hit the cache, and tokens generated.
 - `cost` (on by default): the session's estimated cost at list price. Claude Code only.
+- `git` (on by default): the branch and how many lines are added and removed since the last commit, counting new files the agent created too, e.g. `⎇ main +42 -10`. Hidden outside a git repo.
 - `pace` (off by default): when your 5h and weekly quota run out at the rate you have used them so far, e.g. `week pace: runs out ~Tue 1:27am`, or `lasts to reset`.
 
 Turn them all off to keep a single line.
@@ -121,10 +123,10 @@ ascii = false      # true for terminals without block glyphs
 warn_at = 40       # quota remaining % that turns yellow
 crit_at = 20       # quota remaining % that turns red
 update_check = true  # show "↑ update available" in the bar when one is out
-line2 = ["usage", "cost"]  # second line: any of "usage", "cost", "pace"; [] for none
+line2 = ["usage", "cost", "git"]  # second line: any of "usage", "cost", "git", "pace"; [] for none
 
 [claude]
-line2 = ["usage", "cost", "pace"]  # e.g. pace only in Claude Code
+line2 = ["usage", "cost", "git", "pace"]  # e.g. pace only in Claude Code
 ```
 
 Context turns yellow from 60% used and red from 80%.
@@ -133,7 +135,7 @@ Invalid values are reported and fall back to defaults.
 
 ## How it works
 
-`codex` becomes a small shell function that starts the official CLI inside a private tmux session and draws the bar at the bottom. Data comes from two places only: the terminal title Codex already emits (model, context, thread id), and local Codex session logs: this session's log (pinned by exact path through a SessionStart hook) for context and tokens, plus the most recent local logs for account-wide quota. Only quota and token counters are read, never chat text. The official binary is not replaced or patched, and your tmux config is not touched. Details: [docs/architecture.md](docs/architecture.md).
+`codex` becomes a small shell function that starts the official CLI inside a private tmux session and draws the bar at the bottom. Data comes from two places only: the terminal title Codex already emits (model, context, thread id), and local Codex session logs: this session's log (pinned by exact path through a SessionStart hook) for context and tokens, plus the most recent local logs for account-wide quota. Only quota and token counters are read, never chat text. The git segment runs read-only `git` commands in the project directory. The official binary is not replaced or patched, and your tmux config is not touched. Details: [docs/architecture.md](docs/architecture.md).
 
 ## FAQ
 

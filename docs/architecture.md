@@ -28,6 +28,8 @@ Upstream sources: [title definition](https://github.com/openai/codex/blob/rust-v
 
 Quotas are accepted only from `token_count` events whose window is exactly 300 or 10080 minutes, matched by `window_minutes` rather than by slot, since plans differ (Plus may report only the weekly window, in `primary`). Remaining = `100 - used_percent`, stamped with the event timestamp and `resets_at`. Quota is account-wide, so at launch (for the first frame) and then every 10 s the monitor also reads recent logs under `$CODEX_HOME/sessions`, newest first, up to ten, stopping once both windows are seen (same bounded, metadata-only parser), and keeps the newest snapshot per window. Once `resets_at` has passed with no newer snapshot, the window has rolled over and is shown as 100% with no reset time until Codex reports again. Session tokens are `info.total_token_usage.total_tokens` from the same events. Missing fields render as `--`; nothing is back-computed or estimated.
 
+The `git` segment runs read-only commands in the project directory (`rev-parse`, `symbolic-ref`, `diff HEAD --numstat`, `ls-files --others --exclude-standard`), each with a 1.5 s timeout. New files are counted by reading them, skipping binary files, files over 1 MiB, and anything past the first 200. In Codex this runs every 5 s in a background thread; in Claude Code once per status update. Branch names are escaped like any other state.
+
 All state is stripped of control characters and escaped for tmux. Official args are passed as an argv array, never spliced into a shell string. The tmux status format uses `#{status-left}` and never recursively expands format commands found in state.
 
 ## Claude Code

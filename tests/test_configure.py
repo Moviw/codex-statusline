@@ -17,14 +17,15 @@ class ConfigureTests(unittest.TestCase):
         row = apply(m, 3, "space")  # turn tokens off
         row = apply(m, 1, "J")  # move 5h below week
         self.assertEqual(row, 2)
-        apply(m, 7, "right")  # theme auto -> dark
-        apply(m, 9, "left")  # warn_at 40 -> 35
-        apply(m, 10, "left")  # crit_at 20 -> 15
-        apply(m, 10, "left")  # 15 -> 10
-        apply(m, 11, "space")  # update notice off
+        apply(m, 8, "right")  # theme auto -> dark
+        apply(m, 10, "left")  # warn_at 40 -> 35
+        apply(m, 11, "left")  # crit_at 20 -> 15
+        apply(m, 11, "left")  # 15 -> 10
+        apply(m, 12, "space")  # update notice off
         apply(m, 4, "space")  # line 2: usage (on by default) -> off
         apply(m, 5, "space")  # line 2: cost (on by default) -> off
-        apply(m, 6, "space")  # line 2: pace on
+        apply(m, 6, "space")  # line 2: git (on by default) -> off
+        apply(m, 7, "space")  # line 2: pace on
         cfg = to_config(m)
         self.assertEqual(cfg["line2"], ["pace"])
         self.assertEqual(cfg["segments"], ["ctx", "week", "5h"])
@@ -94,7 +95,7 @@ class TwoToolTests(unittest.TestCase):
         with patch.dict("os.environ", {}, clear=True):
             model = model_from(load_config("/nonexistent.toml", "codex"), "codex")
             for _ in range(30):
-                apply(model, 9, "left")  # crit_at all the way down
+                apply(model, 10, "left")  # crit_at all the way down
             self.assertEqual(model["crit_at"], 0)
             text = dump_sections({"codex": to_config(model)})
         self.assertEqual(text, "[codex]\ncrit_at = 0\n")

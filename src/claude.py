@@ -11,6 +11,7 @@ import sys
 import time
 from typing import Any
 
+from .git import git_status
 from .render import load_config, render, render_line2
 from .update import cached_newer_version
 
@@ -82,6 +83,11 @@ def statusline(stream=None) -> int:
     state = state_from(data, time.time())
     if cfg["update_check"]:
         state["update"], state["updater"] = cached_newer_version(), "cxbar"
+    if "git" in cfg["line2"]:
+        workspace = data.get("workspace") if isinstance(data.get("workspace"), dict) else {}
+        cwd = workspace.get("current_dir") or data.get("cwd")
+        if isinstance(cwd, str) and cwd:
+            state["git"] = git_status(cwd)
     width = max(20, terminal_width() - 4)  # Claude indents the status line a little
     style = {"theme": cfg["theme"], "ascii_only": cfg["ascii"], "tmux": False, "ansi": True}
     lines = [

@@ -32,9 +32,9 @@ _CONFIG_DEFAULTS = {
     "ascii": False,
     "warn_at": 40,
     "crit_at": 20,
-    "line2": ["usage", "cost"],
+    "line2": ["usage", "cost", "git"],
 }
-LINE2_SEGMENTS = ["usage", "cost", "pace"]
+LINE2_SEGMENTS = ["usage", "cost", "git", "pace"]
 
 
 def config_path() -> Path:
@@ -275,7 +275,7 @@ def render_line2(
     tmux: bool = True,
     ansi: bool = False,
 ) -> str:
-    """Second line: token breakdown and cost, then quota pace; drops parts from the end."""
+    """Second line: token breakdown and cost, git, then quota pace; drops parts from the end."""
     width = max(0, int(width))
     state = state if isinstance(state, dict) else {}
     now = _number(state.get("now")) or datetime.now().timestamp()
@@ -287,6 +287,15 @@ def render_line2(
         usage = f"{usage} · ≈${cost:.2f}" if usage else f"≈${cost:.2f}"
     if usage:
         parts.append((usage, "accent"))
+    git = state.get("git") if "git" in line2 else None
+    if isinstance(git, dict) and git.get("branch"):
+        # Branch names come from the repo: strip control characters, escape tmux syntax.
+        name = _safe(git["branch"], ascii_only, tmux and not ansi)
+        text = f"git:{name}" if ascii_only else f"⎇ {name}"
+        added, removed = _number(git.get("added")) or 0, _number(git.get("removed")) or 0
+        if added or removed:
+            text += f" +{int(added)} -{int(removed)}"
+        parts.append((text, "accent"))
     if "pace" in line2:
         for data, minutes, weekly in (
             (quotas.get("5h"), 300, False),

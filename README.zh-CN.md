@@ -84,7 +84,7 @@ cxbar uninstall
 
   Preview
     CTX USED ███░░░░░ 35% | 5h ██░░░░░░░░ 18% 3:46pm | week ██████░░░░ 62% Sat 1:46pm | tok 1.2M
-    in 1.2M · 94% cached · out 44.0k
+    in 1.2M · 94% cached · out 44.0k | ⎇ main +42 -10
 
   Line 1
 ▶ [x] ctx     context used
@@ -93,6 +93,7 @@ cxbar uninstall
   [x] tokens  session tokens
   Line 2
   [x] usage   tokens in / cached / out
+  [x] git     branch and uncommitted +/- lines
   [ ] pace    when quota runs out at this pace
   Style
   Theme            < auto >
@@ -102,10 +103,11 @@ cxbar uninstall
   Update notice    [x]
 ```
 
-第二行有三项：
+第二行有四项：
 
 - `usage`（默认打开）：发送的 token 数、其中命中缓存的比例、生成的 token 数。
 - `cost`（默认打开）：按标价估算的本次会话花费，仅 Claude Code 有。
+- `git`（默认打开）：当前分支，以及相对上次提交增删了多少行，agent 新建的文件也算在内，例如 `⎇ main +42 -10`。不在 git 仓库里时不显示。
 - `pace`（默认关闭）：按目前的使用速度，5h 和周额度会在什么时候用完，例如 `week pace: runs out ~Tue 1:27am`；撑得到重置时显示 `lasts to reset`。
 
 全部关掉，就只显示一行。
@@ -120,10 +122,10 @@ ascii = false      # 终端不支持方块字符时设为 true
 warn_at = 40       # 额度剩余低于该百分比变黄
 crit_at = 20       # 额度剩余低于该百分比变红
 update_check = true  # 有新版本时在底栏显示 "↑ update available"
-line2 = ["usage", "cost"]  # 第二行："usage"、"cost"、"pace" 任选，[] 不显示
+line2 = ["usage", "cost", "git"]  # 第二行："usage"、"cost"、"git"、"pace" 任选，[] 不显示
 
 [claude]
-line2 = ["usage", "cost", "pace"]  # 例如只在 Claude Code 里显示 pace
+line2 = ["usage", "cost", "git", "pace"]  # 例如只在 Claude Code 里显示 pace
 ```
 
 context 用到 60% 变黄，80% 变红。
@@ -132,7 +134,7 @@ context 用到 60% 变黄，80% 变红。
 
 ## 原理
 
-`codex` 会变成一个小 shell 函数：它在私有 tmux session 里启动官方 CLI，并在底部绘制状态栏。数据只有两个来源：Codex 自己发出的终端标题（模型、context、thread id），以及本机的 Codex 会话日志：context 和 token 数只读由 SessionStart hook 按精确路径绑定的**本次**会话日志，账号共用的额度则取最近几个本地会话日志里最新的一条。只读取额度和 token 计数，从不读聊天内容。不替换、不修改官方二进制，也不改你的 tmux 配置。详见[架构说明](docs/architecture.md)。
+`codex` 会变成一个小 shell 函数：它在私有 tmux session 里启动官方 CLI，并在底部绘制状态栏。数据只有两个来源：Codex 自己发出的终端标题（模型、context、thread id），以及本机的 Codex 会话日志：context 和 token 数只读由 SessionStart hook 按精确路径绑定的**本次**会话日志，账号共用的额度则取最近几个本地会话日志里最新的一条。只读取额度和 token 计数，从不读聊天内容。git 段会在项目目录里执行只读的 `git` 命令。不替换、不修改官方二进制，也不改你的 tmux 配置。详见[架构说明](docs/architecture.md)。
 
 ## 常见问题
 

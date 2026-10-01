@@ -251,6 +251,17 @@ def launch(args):
             ).start()
         sessions, readers, others, scan_at = sessions_dir(), {}, {}, 0.0
         last_line = last_second = None
+        # git runs in its own thread every 5 s, so a slow repo never delays the bar.
+        repo = {"cwd": config["cwd"], "status": None}
+        if "git" in cfg["line2"]:
+            from .git import git_status
+
+            def watch_git():
+                while not stop.is_set():
+                    repo["status"] = git_status(repo["cwd"])
+                    stop.wait(5)
+
+            threading.Thread(target=watch_git, daemon=True).start()
         while not stop.is_set():
             try:
                 if (root / "exit.json").exists():
@@ -285,6 +296,7 @@ def launch(args):
                 state["quotas"] = merge_quotas(state["quotas"], others)
                 state["update"] = latest.get("version")
                 state["updater"] = updater
+                repo["cwd"], state["git"] = state["cwd"], repo["status"]
                 line = render(
                     state,
                     int(width or 80),
