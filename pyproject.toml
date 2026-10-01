@@ -1,6 +1,6 @@
 [project]
 name = "codex-statusline"
-version = "0.3.1"
+version = "0.4.0"
 description = "A tmux statusline for OpenAI Codex CLI: context usage, 5h and weekly quota, and session tokens at a glance. Local-only."
 requires-python = ">=3.11"
 license = "MIT"

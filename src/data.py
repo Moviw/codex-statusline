@@ -62,6 +62,18 @@ def parse_title(title: str) -> dict[str, Any]:
     }
 
 
+USAGE_KEYS = ("input_tokens", "cached_input_tokens", "output_tokens")
+
+
+def _count(value: Any) -> bool:
+    return (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and math.isfinite(value)
+        and value >= 0
+    )
+
+
 def _timestamp(value: Any) -> float | None:
     """Convert supported event timestamps to Unix seconds without guessing."""
     if isinstance(value, bool):
@@ -113,6 +125,8 @@ class LogReader:
         self._probe = b""
         self._quotas = _empty_quotas()
         self._tokens: float | None = None
+        self._usage: dict[str, float] | None = None
+        self._window: float | None = None
 
     def _reset(self, path: str) -> None:
         self._path = path
@@ -123,6 +137,8 @@ class LogReader:
         self._probe = b""
         self._quotas = _empty_quotas()
         self._tokens = None
+        self._usage = None
+        self._window = None
 
     def _consume_line(self, line: bytes) -> None:
         try:
@@ -140,13 +156,15 @@ class LogReader:
         info = payload.get("info")
         total = info.get("total_token_usage") if isinstance(info, dict) else None
         tokens = total.get("total_tokens") if isinstance(total, dict) else None
-        if (
-            isinstance(tokens, (int, float))
-            and not isinstance(tokens, bool)
-            and math.isfinite(tokens)
-            and tokens >= 0
-        ):
+        if _count(tokens):
             self._tokens = float(tokens)
+        if isinstance(total, dict):
+            usage = {key: total.get(key) for key in USAGE_KEYS}
+            if all(_count(v) for v in usage.values()):
+                self._usage = {key: float(v) for key, v in usage.items()}
+        window = info.get("model_context_window") if isinstance(info, dict) else None
+        if _count(window) and window > 0:
+            self._window = float(window)
         # Native versions may keep rate_limits inside info; quota-only events
         # can instead carry rate_limits directly on payload (even if info is null).
         rate_limits = info.get("rate_limits") if isinstance(info, dict) else None
@@ -227,6 +245,8 @@ class LogReader:
                 self._probe = b""
                 self._quotas = _empty_quotas()
                 self._tokens = None
+                self._usage = None
+                self._window = None
                 if stat.st_size > _MAX_READ_BYTES:
                     # Start at a bounded tail boundary, discarding its possibly
                     # incomplete first line.  Current quota events remain
@@ -261,6 +281,8 @@ class LogReader:
             self._probe = b""
             self._quotas = _empty_quotas()
             self._tokens = None
+            self._usage = None
+            self._window = None
         except OSError:
             # Avoid exporting filesystem details or turning transient I/O into
             # fabricated quota data; previously observed metadata remains.
@@ -268,6 +290,8 @@ class LogReader:
         return {
             "quotas": {name: dict(value) for name, value in self._quotas.items()},
             "tokens": self._tokens,
+            "usage": dict(self._usage) if self._usage else None,
+            "window": self._window,
         }
 
 

@@ -3,13 +3,25 @@
 import curses
 import time
 
-from .render import DEFAULT_SEGMENTS, THEMES, config_path, load_config, render
+from .render import (
+    DEFAULT_SEGMENTS,
+    LINE2_SEGMENTS,
+    THEMES,
+    config_path,
+    load_config,
+    render,
+    render_line2,
+)
 
 SEGMENT_NAMES = {
     "ctx": "context used",
     "5h": "5-hour quota",
     "week": "weekly quota",
     "tokens": "session tokens",
+}
+LINE2_NAMES = {
+    "pace": "line 2: when quota runs out at this pace",
+    "usage": "line 2: tokens in / cached / out, context size",
 }
 SETTINGS = ["theme", "ascii", "warn_at", "crit_at", "update_check"]
 LABELS = {
@@ -25,12 +37,18 @@ HELP = "↑↓ move  space toggle  ←→ change  J/K reorder  s save  q quit"
 def model_from(cfg: dict) -> dict:
     enabled = [name for name in cfg["segments"] if name in SEGMENT_NAMES]
     order = enabled + [name for name in DEFAULT_SEGMENTS if name not in enabled]
-    return {**{key: cfg[key] for key in SETTINGS}, "order": order, "enabled": set(enabled)}
+    return {
+        **{key: cfg[key] for key in SETTINGS},
+        "order": order,
+        "enabled": set(enabled),
+        "line2": set(cfg["line2"]),
+    }
 
 
 def to_config(model: dict) -> dict:
     segments = [name for name in model["order"] if name in model["enabled"]]
-    return {"segments": segments, **{key: model[key] for key in SETTINGS}}
+    line2 = [name for name in LINE2_SEGMENTS if name in model["line2"]]
+    return {"segments": segments, "line2": line2, **{key: model[key] for key in SETTINGS}}
 
 
 def dump_toml(cfg: dict) -> str:
@@ -45,7 +63,7 @@ def dump_toml(cfg: dict) -> str:
 
 
 def row_count(model: dict) -> int:
-    return len(model["order"]) + len(SETTINGS)
+    return len(model["order"]) + len(LINE2_SEGMENTS) + len(SETTINGS)
 
 
 def apply(model: dict, row: int, key: str) -> int:
@@ -70,7 +88,12 @@ def apply(model: dict, row: int, key: str) -> int:
                 order[row], order[target] = order[target], order[row]
                 return target
         return row
-    setting = SETTINGS[row - len(order)]
+    if row < len(order) + len(LINE2_SEGMENTS):
+        name = LINE2_SEGMENTS[row - len(order)]
+        if key in ("space", "left", "right"):
+            model["line2"] ^= {name}
+        return row
+    setting = SETTINGS[row - len(order) - len(LINE2_SEGMENTS)]
     current = model[setting]
     step = {"left": -1, "right": 1}.get(key, 0)
     if isinstance(current, bool):
@@ -89,6 +112,9 @@ def rows_text(model: dict) -> list[str]:
     for name in model["order"]:
         mark = "x" if name in model["enabled"] else " "
         lines.append(f"[{mark}] {name:<7} {SEGMENT_NAMES[name]}")
+    for name in LINE2_SEGMENTS:
+        mark = "x" if name in model["line2"] else " "
+        lines.append(f"[{mark}] {name:<7} {LINE2_NAMES[name]}")
     for setting in SETTINGS:
         value = model[setting]
         if isinstance(value, bool):
@@ -106,6 +132,12 @@ def sample_state() -> dict:
     return {
         "context_used": 35,
         "tokens": 1_234_567,
+        "window": 258_400,
+        "usage": {
+            "input_tokens": 1_190_000,
+            "cached_input_tokens": 1_120_000,
+            "output_tokens": 44_000,
+        },
         "quotas": {
             "5h": {"remaining": 18, "reset_at": now + 7200, "observed_at": now},
             "weekly": {"remaining": 62, "reset_at": now + 172800, "observed_at": now},
@@ -140,7 +172,12 @@ def _ui(screen, model: dict) -> bool:
         )
         lines = ["codex-statusline config", HELP, ""]
         lines += [("> " if i == row else "  ") + text for i, text in enumerate(rows_text(model))]
-        lines += ["", "Preview (sample numbers):", "  " + preview, "", f"Saves to {config_path()}"]
+        second = render_line2(
+            state, max(1, width - 4), cfg["line2"], tmux=False, ascii_only=cfg["ascii"]
+        )
+        lines += ["", "Preview (sample numbers):", "  " + preview]
+        lines += ["  " + second] if second else []
+        lines += ["", f"Saves to {config_path()}"]
         for y, text in enumerate(lines[: height - 1]):
             highlight = curses.A_REVERSE if y - 3 == row else curses.A_NORMAL
             try:

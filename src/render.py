@@ -32,7 +32,9 @@ _CONFIG_DEFAULTS = {
     "ascii": False,
     "warn_at": 20,
     "crit_at": 5,
+    "line2": [],
 }
+LINE2_SEGMENTS = ["pace", "usage"]
 
 
 def config_path() -> Path:
@@ -61,6 +63,7 @@ def load_config(path: str | os.PathLike | None = None) -> dict[str, Any]:
         "update_check": lambda v: isinstance(v, bool),
         "warn_at": lambda v: isinstance(v, int) and not isinstance(v, bool) and 0 <= v <= 100,
         "crit_at": lambda v: isinstance(v, int) and not isinstance(v, bool) and 0 <= v <= 100,
+        "line2": lambda v: isinstance(v, list) and all(x in LINE2_SEGMENTS for x in v),
     }
     for key, value in raw.items():
         if key in checks and checks[key](value):
@@ -208,14 +211,92 @@ def _quota_role(value: int | None, warn_at: int = 20, crit_at: int = 5) -> str:
     return "accent"
 
 
-def _tokens(value: Any) -> str:
-    number = _number(value)
-    if number is None or number < 0:
-        return "tok --"
+def _si(number: float) -> str:
     for unit, size in (("B", 1e9), ("M", 1e6), ("k", 1e3)):
         if number >= size:
-            return f"tok {number / size:.1f}{unit}"
-    return f"tok {int(number)}"
+            return f"{number / size:.1f}{unit}"
+    return str(int(number))
+
+
+def _tokens(value: Any) -> str:
+    number = _number(value)
+    return "tok --" if number is None or number < 0 else f"tok {_si(number)}"
+
+
+def _pace(data: Any, minutes: int, now: float, weekly: bool) -> tuple[str, str] | None:
+    """When the window runs out at its average burn rate so far, or None if unknown."""
+    label = "week" if weekly else "5h"
+    if not isinstance(data, dict) or _is_stale(data, now):
+        return None
+    remaining, reset_at = _number(data.get("remaining")), _number(data.get("reset_at"))
+    seen = _number(data.get("observed_at"))
+    if remaining is None or reset_at is None or seen is None:
+        return None
+    start = reset_at - minutes * 60
+    elapsed, used = seen - start, 100 - remaining
+    if elapsed < 60 or used <= 0:
+        return f"{label} pace: lasts to reset", "accent"
+    empty_at = start + elapsed * 100 / used
+    if empty_at >= reset_at:
+        return f"{label} pace: lasts to reset", "accent"
+    return f"{label} pace: runs out ~{_reset(empty_at, now, weekly)}", "warning"
+
+
+def _usage(state: dict) -> str | None:
+    usage = state.get("usage")
+    if not isinstance(usage, dict):
+        return None
+    numbers = [
+        _number(usage.get(k)) for k in ("input_tokens", "cached_input_tokens", "output_tokens")
+    ]
+    if any(n is None or n < 0 for n in numbers):
+        return None
+    given, cached, output = numbers
+    text = f"in {_si(given)}"
+    if given:
+        text += f" · {round(100 * min(cached, given) / given)}% cached"
+    text += f" · out {_si(output)}"
+    window, context = _number(state.get("window")), _number(state.get("context_used"))
+    if window and context is not None:
+        text += f" · ctx {_si(window * context / 100)}/{_si(window)}"
+    return text
+
+
+def render_line2(
+    state: dict,
+    width: int,
+    line2: list[str],
+    theme: str = "dark",
+    ascii_only: bool = False,
+    tmux: bool = True,
+) -> str:
+    """Optional second line: quota pace and token breakdown; drops parts from the end."""
+    width = max(0, int(width))
+    state = state if isinstance(state, dict) else {}
+    now = _number(state.get("now")) or datetime.now().timestamp()
+    quotas = state.get("quotas") if isinstance(state.get("quotas"), dict) else {}
+    parts: list[tuple[str, str]] = []
+    if "pace" in line2:
+        for data, minutes, weekly in (
+            (quotas.get("5h"), 300, False),
+            (quotas.get("weekly"), 10080, True),
+        ):
+            pace = _pace(data, minutes, now, weekly)
+            if pace:
+                parts.append(pace)
+    if "usage" in line2:
+        usage = _usage(state)
+        if usage:
+            parts.append((usage, "accent"))
+    sep = " | "
+    if ascii_only:
+        parts = [(text.replace("·", "-"), role) for text, role in parts]
+    while parts and visible_width("  " + sep.join(t for t, _ in parts)) > width:
+        parts.pop()
+    if not parts:
+        return ""
+    theme = theme if theme in THEMES else "dark"
+    return "  " + sep.join(_paint(text, theme, role, tmux) for text, role in parts)
 
 
 def _paint(text: str, theme: str, role: str, tmux: bool) -> str:

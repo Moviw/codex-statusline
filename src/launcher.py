@@ -217,8 +217,11 @@ def launch(args):
         )
     from .render import THEMES, load_config
 
+    cfg = load_config()
     with conf.open("a") as stream:
-        stream.write(f'set -g status-style "{THEMES[load_config()["theme"]]}"\n')
+        stream.write(f'set -g status-style "{THEMES[cfg["theme"]]}"\n')
+        if cfg["line2"]:  # second status row, filled from the @line2 option
+            stream.write('set -g status 2\nset -g status-format[1] "#{@line2}"\n')
     base = [tmux, "-S", str(root / "tmux.sock"), "-f", str(conf)]
     env = dict(os.environ)
     env.pop("TMUX", None)
@@ -233,7 +236,7 @@ def launch(args):
 
     def monitor():
         from .data import LogReader, merge_quotas, newest_quotas, parse_title, sessions_dir
-        from .render import load_config, render
+        from .render import load_config, render, render_line2
 
         cfg = load_config()
         reader = LogReader()
@@ -246,7 +249,7 @@ def launch(args):
                 target=lambda: latest.update(version=newer_version()), daemon=True
             ).start()
         sessions, readers, others, scan_at = sessions_dir(), {}, {}, 0.0
-        last_line = None
+        last_line = last_second = None
         while not stop.is_set():
             try:
                 if (root / "exit.json").exists():
@@ -275,10 +278,9 @@ def launch(args):
                 if bound:
                     state["cwd"] = bound.get("cwd") or config["cwd"]
                     snapshot = reader.update(bound["transcript_path"])
-                    state["quotas"], state["tokens"] = (
-                        snapshot.get("quotas", {}),
-                        snapshot.get("tokens"),
-                    )
+                    state["quotas"] = snapshot.get("quotas", {})
+                    for key in ("tokens", "usage", "window"):
+                        state[key] = snapshot.get(key)
                 state["quotas"] = merge_quotas(state["quotas"], others)
                 state["update"] = latest.get("version")
                 state["updater"] = updater
@@ -294,6 +296,13 @@ def launch(args):
                 if line != last_line:
                     call("set-option", "-t", "codex", "status-left", line)
                     last_line = line
+                if cfg["line2"]:
+                    second = render_line2(
+                        state, int(width or 80), cfg["line2"], cfg["theme"], cfg["ascii"]
+                    )
+                    if second != last_second:
+                        call("set-option", "-t", "codex", "@line2", second)
+                        last_second = second
                 # Save metadata-only current view for doctor/tests; never pane text.
                 atomic_json(root / "view.json", state)
             except Exception as error:

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.0
+
+- **Second line** (opt-in in `cxbar config`):
+  - `pace`: when your 5h and weekly quota run out at the rate you have used them so far, or `lasts to reset`.
+  - `usage`: tokens in, cache hit rate, tokens out, and context used out of the model's window.
+
+  Example: `5h pace: runs out ~4:17pm | week pace: lasts to reset | in 18.8M · 97% cached · out 66.1k · ctx 138.0k/258.4k`
+- Config key `line2 = ["pace", "usage"]` for the same thing by hand.
+
 ## 0.3.1
 
 - `cxbar doctor` is a checklist with the fix for each problem: Codex and tmux versions, whether `codex` runs this copy, whether Codex approved the hook, and whether an update is out.
