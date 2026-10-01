@@ -52,6 +52,7 @@ codex                     # same as always, now with a status bar
 codex resume --last
 codex exec 'task'         # non-interactive: passed straight through, no bar
 
+codex-statusline config   # pick segments, theme and colors interactively
 codex-statusline update   # upgrade, whichever way you installed it
 codex-statusline doctor   # check versions and dependencies
 codex-statusline preview --width 80   # try it without launching Codex
@@ -62,7 +63,22 @@ Uninstall removes only what this tool added and still matches exactly. If you ed
 
 ## Configuration
 
-Optional. Create `~/.config/codex-statusline/config.toml`:
+Run `codex-statusline config` to set everything up in an interactive screen with a live preview: toggle and reorder segments, switch theme, set the warning thresholds, then press `s` to save.
+
+```text
+  [x] ctx     context used
+  [x] 5h      5-hour quota
+  [x] week    weekly quota
+  [x] tokens  session tokens
+> Theme            < auto >
+  Quota yellow at  < 20% >
+  Quota red at     < 5% >
+
+Preview (sample numbers):
+    CTX USED ███░░░░░ 35% | 5h ██░░░░░░░░ 18% 3:46pm | week ██████░░░░ 62% Sat 1:46pm | tok 1.2M
+```
+
+It writes `~/.config/codex-statusline/config.toml`, which you can also edit by hand:
 
 ```toml
 segments = ["ctx", "5h", "week", "tokens"]  # pick and reorder
@@ -81,7 +97,7 @@ Invalid values are reported and fall back to defaults.
 
 ## FAQ
 
-**How do I scroll or copy?** It runs inside tmux: press `Ctrl-B` then `[` to scroll and copy. The mouse wheel may behave differently from bare Codex.
+**How do I scroll or copy?** Exactly as in plain Codex: the mouse wheel scrolls the conversation, and text selection works the same way.
 
 **Windows?** Not supported (tmux).
 

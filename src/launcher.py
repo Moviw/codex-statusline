@@ -215,7 +215,7 @@ def launch(args):
         'set -g status-left ""\n'
         "set -g allow-rename off\n"
         "set -g set-titles off\n"
-        "set -g mouse off\n"
+        "set -g mouse on\n"
         "set -g history-limit 10000\n"
         "set -g remain-on-exit on\n"
         "set -g exit-empty on\n"

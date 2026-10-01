@@ -116,6 +116,8 @@ class StartupTests(unittest.TestCase):
                 )
                 conf = (root / "tmux.conf").read_text()
                 self.assertIn("CTX USED", conf)
+                # Codex asks tmux for #{mouse}; off makes the wheel recall old prompts.
+                self.assertIn("set -g mouse on", conf)
                 self.assertNotIn("binding pending", conf)
                 # error.json is written before the fallback status is applied.
                 # Faster Linux startup can observe that intermediate state.

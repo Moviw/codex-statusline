@@ -52,6 +52,7 @@ codex                     # 照常使用，多了底栏
 codex resume --last
 codex exec 'task'         # 非交互命令直接透传，不显示底栏
 
+codex-statusline config   # 交互式选择显示段、主题和配色
 codex-statusline update   # 升级（自动识别安装方式）
 codex-statusline doctor   # 检查版本与依赖
 codex-statusline preview --width 80   # 不启动 Codex 预览效果
@@ -62,7 +63,22 @@ codex-statusline uninstall
 
 ## 配置
 
-可选，创建 `~/.config/codex-statusline/config.toml`：
+运行 `codex-statusline config`，在交互界面里一边预览一边配置：开关和排序显示段、切换主题、设置变色阈值，按 `s` 保存。
+
+```text
+  [x] ctx     context used
+  [x] 5h      5-hour quota
+  [x] week    weekly quota
+  [x] tokens  session tokens
+> Theme            < auto >
+  Quota yellow at  < 20% >
+  Quota red at     < 5% >
+
+Preview (sample numbers):
+    CTX USED ███░░░░░ 35% | 5h ██░░░░░░░░ 18% 3:46pm | week ██████░░░░ 62% Sat 1:46pm | tok 1.2M
+```
+
+配置保存在 `~/.config/codex-statusline/config.toml`，也可以直接手动编辑：
 
 ```toml
 segments = ["ctx", "5h", "week", "tokens"]  # 选择与排序
@@ -81,7 +97,7 @@ update_check = true  # 有新版本时在底栏显示 "↑ 新版本号"
 
 ## 常见问题
 
-**怎么滚动或复制？** 状态栏运行在 tmux 里，按 `Ctrl-B` 再按 `[` 进入滚动和复制模式。鼠标滚轮的行为可能和直接运行 Codex 时不同。
+**怎么滚动或复制？** 和直接运行 Codex 完全一样：鼠标滚轮滚动对话，选中复制文字的方式也不变。
 
 **支持 Windows 吗？** 不支持（依赖 tmux）。
 

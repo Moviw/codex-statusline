@@ -1,7 +1,8 @@
 # Changelog
 
-## 0.1.4
+## 0.2.1
 
+- Fix: the mouse wheel scrolls the conversation again, just like plain Codex, instead of recalling earlier prompts.
 - `codex-statusline config`: pick segments and their order, theme, thresholds, and the update notice in an interactive screen with a live preview. No more hand-editing config.toml.
 - Install and uninstall print a short summary of which files change; `--diff` shows the exact changes. The prompt now defaults to yes.
 - Installing from a new path (e.g. moving from a local checkout to uv/pipx) replaces the previous install in one step.
