@@ -47,6 +47,9 @@ def main():
     parsers = {
         name: sub.add_parser(name, help=text, description=text) for name, text in commands.items()
     }
+    parsers["update"].add_argument(
+        "--check", action="store_true", help="only report whether an update is out"
+    )
     for name in ("install", "uninstall"):
         s = parsers[name]
         s.add_argument(
@@ -76,9 +79,9 @@ def main():
 
             return configure()
         if ns.action == "update":
-            from .update import update
+            from .update import check, update
 
-            return update()
+            return check() if ns.check else update()
         if ns.action == "doctor":
             from .doctor import doctor
 

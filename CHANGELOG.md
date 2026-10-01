@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.1
+
+- `cxbar update --check` reports whether a new release is out without installing it (exit code 0 up to date, 1 update available, 2 could not check).
+
 ## 0.5.0
 
 - **Claude Code support.** `cxbar install` also sets the bar as Claude Code's `statusLine` when it finds `~/.claude`, so `claude` shows the same two lines. No tmux needed there.

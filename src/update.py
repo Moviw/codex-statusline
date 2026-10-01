@@ -107,6 +107,19 @@ def upgrade_command(prefix: str = sys.prefix, package: Path = PACKAGE) -> list[s
     return [sys.executable, "-m", "pip", "install", "--upgrade", "codex-statusline"]
 
 
+def check(latest=latest_version) -> int:
+    """Report without installing. Exit 0: up to date, 1: update available, 2: unknown."""
+    found = latest()
+    if found is None:
+        print(f"codex-statusline {__version__}: could not reach PyPI to check for updates.")
+        return 2
+    if is_newer(found):
+        print(f"codex-statusline {found} is available (you have {__version__}). Run: cxbar update")
+        return 1
+    print(f"codex-statusline {__version__} is the latest version.")
+    return 0
+
+
 def update() -> int:
     command = upgrade_command()
     print("$ " + " ".join(command))

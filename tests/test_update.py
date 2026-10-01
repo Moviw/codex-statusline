@@ -1,3 +1,4 @@
+import contextlib
 import io
 import json
 import tempfile
@@ -6,7 +7,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from src.render import render
-from src.update import is_newer, newer_version, upgrade_command
+from src.update import check, is_newer, newer_version, upgrade_command
 
 
 class UpdateTests(unittest.TestCase):
@@ -48,3 +49,16 @@ class UpdateTests(unittest.TestCase):
         self.assertIn("^ update available", render(state, 240, tmux=False, ascii_only=True))
         self.assertNotIn("update", render(state, 40, tmux=False))
         self.assertNotIn("update", render(dict(state, update="#(evil)"), 240, tmux=False))
+
+
+class CheckTests(unittest.TestCase):
+    def test_check_reports_without_installing(self):
+        with patch("subprocess.run", side_effect=AssertionError("must not install")):
+            for latest, code, text in (
+                ("99.0.0", 1, "is available"),
+                ("0.0.1", 0, "latest"),
+                (None, 2, "could not"),
+            ):
+                with contextlib.redirect_stdout(io.StringIO()) as out:
+                    self.assertEqual(check(lambda latest=latest: latest), code)
+                self.assertIn(text, out.getvalue())
