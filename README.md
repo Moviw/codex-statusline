@@ -139,8 +139,6 @@ Invalid values are reported and fall back to defaults.
 
 ## FAQ
 
-**How do I scroll or copy?** Exactly as in plain Codex: the mouse wheel scrolls the conversation, and text selection works the same way.
-
-**Windows?** Not supported (tmux).
-
 **Is this official?** No. It is a third-party tool built on a version-sensitive integration.
+
+**Windows?** Not supported.
