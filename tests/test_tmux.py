@@ -5,8 +5,9 @@ import tempfile
 import time
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
-from src.launcher import SPINNER, outer_title
+from src.launcher import SPINNER, outer_title, restore_title
 from src.render import render
 
 
@@ -20,6 +21,13 @@ class OuterTitleTests(unittest.TestCase):
         self.assertEqual(outer_title({"thread_title": "a\x1b]0;x\x07b"}, "/"), "ab")
         frames = {outer_title({"working": True}, "/w/app", i) for i in range(len(SPINNER))}
         self.assertEqual(frames, {f"{c} codex · app" for c in SPINNER})
+
+    def test_restore_title_names_the_host_over_ssh(self):
+        self.assertEqual(restore_title({}), "\x1b[23;0t")
+        with patch("src.launcher.socket.gethostname", return_value="cal1.lab.example"):
+            self.assertEqual(
+                restore_title({"SSH_CONNECTION": "1 2 3 4"}), "\x1b[23;0t\x1b]2;ssh: cal1\x07"
+            )
 
 
 @unittest.skipUnless(shutil.which("tmux"), "tmux not installed")

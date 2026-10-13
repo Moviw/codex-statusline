@@ -5,6 +5,7 @@ import os
 import re
 import shutil
 import signal
+import socket
 import subprocess
 import sys
 import tempfile
@@ -142,6 +143,17 @@ def binding_for(bindings, hint, launch_id):
         if sid.startswith(prefix) and b.get("launch_id") == launch_id
     ]
     return candidates[0] if len(candidates) == 1 else None
+
+
+def restore_title(env=os.environ):
+    """XTPOPTITLE, then over SSH name the host: some terminals (Ghostty) ignore the pop."""
+    text = "\x1b[23;0t"
+    if env.get("SSH_CONNECTION"):
+        from .render import _safe
+
+        host = _safe(socket.gethostname().split(".")[0], ascii_only=False, tmux=False)
+        text += f"\x1b]2;ssh: {host}\x07"
+    return text
 
 
 def outer_title(state, cwd, frame=0):
@@ -438,6 +450,6 @@ def launch(args):
         if "worker" in locals():
             worker.join(timeout=3)
         if "pushed" in locals():
-            sys.stdout.write("\x1b[23;0t")
+            sys.stdout.write(restore_title())
             sys.stdout.flush()
         shutil.rmtree(root, ignore_errors=True)
