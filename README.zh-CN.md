@@ -137,7 +137,7 @@ context 用到 60% 变黄，80% 变红。
 
 ## 原理
 
-`codex` 会变成一个小 shell 函数：它在私有 tmux session 里启动官方 CLI，并在底部绘制状态栏。数据只有两个来源：Codex 自己发出的终端标题（模型、context、thread id），以及本机的 Codex 会话日志：context 和 token 数只读由 SessionStart hook 按精确路径绑定的**本次**会话日志，账号共用的额度则取最近几个本地会话日志里最新的一条。只读取额度和 token 计数，从不读聊天内容。git 段会在项目目录里执行只读的 `git` 命令。不替换、不修改官方二进制，也不改你的 tmux 配置。详见[架构说明](docs/architecture.md)。
+`codex` 会变成一个小 shell 函数：它在私有 tmux session 里启动官方 CLI，并在底部绘制状态栏。数据只有两个来源：Codex 自己发出的终端标题（模型、context、thread id、对话标题、工作状态），以及本机的 Codex 会话日志：context 和 token 数只读由 SessionStart hook 按精确路径绑定的**本次**会话日志，账号共用的额度则取最近几个本地会话日志里最新的一条。只读取额度和 token 计数，从不读聊天内容。git 段会在项目目录里执行只读的 `git` 命令。tab 标题显示 Codex 的对话标题，工作时前面会有转圈动画。不替换、不修改官方二进制，也不改你的 tmux 配置。详见[架构说明](docs/architecture.md)。
 
 ## 常见问题
 

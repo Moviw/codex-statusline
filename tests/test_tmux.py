@@ -5,8 +5,29 @@ import tempfile
 import time
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
+from src.launcher import SPINNER, outer_title, restore_title
 from src.render import render
+
+
+class OuterTitleTests(unittest.TestCase):
+    def test_thread_title_dir_fallback_and_own_spinner_frames(self):
+        home = os.path.expanduser("~")
+        self.assertEqual(outer_title({"thread_title": "Fix login"}, "/w/app"), "Fix login")
+        self.assertEqual(outer_title({}, "/w/app"), "codex · app")
+        self.assertEqual(outer_title({"thread_title": None}, home), "codex · ~")
+        self.assertEqual(outer_title({}, "/"), "codex · /")
+        self.assertEqual(outer_title({"thread_title": "a\x1b]0;x\x07b"}, "/"), "ab")
+        frames = {outer_title({"working": True}, "/w/app", i) for i in range(len(SPINNER))}
+        self.assertEqual(frames, {f"{c} codex · app" for c in SPINNER})
+
+    def test_restore_title_names_the_host_over_ssh(self):
+        self.assertEqual(restore_title({}), "\x1b[23;0t")
+        with patch("src.launcher.socket.gethostname", return_value="cal1.lab.example"):
+            self.assertEqual(
+                restore_title({"SSH_CONNECTION": "1 2 3 4"}), "\x1b[23;0t\x1b]2;ssh: cal1\x07"
+            )
 
 
 @unittest.skipUnless(shutil.which("tmux"), "tmux not installed")
@@ -47,5 +68,16 @@ class TmuxTests(unittest.TestCase):
                 time.sleep(0.2)
                 self.assertFalse(sentinel.exists())
                 self.assertEqual(len(run("list-panes").stdout.splitlines()), 1)
+                # The outer title is the literal option value, never a format.
+                self.assertEqual(
+                    run("set-option", "set-titles-string", "#{@outer_title}").returncode, 0
+                )
+                self.assertEqual(
+                    run("set-option", "@outer_title", f"#(touch {sentinel}) ##").returncode, 0
+                )
+                expanded = run("display-message", "-p", "#{T:set-titles-string}").stdout
+                self.assertEqual(expanded.strip(), f"#(touch {sentinel}) ##")
+                time.sleep(0.2)
+                self.assertFalse(sentinel.exists())
             finally:
                 run("kill-server")

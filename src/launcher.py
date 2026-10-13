@@ -5,6 +5,7 @@ import os
 import re
 import shutil
 import signal
+import socket
 import subprocess
 import sys
 import tempfile
@@ -16,7 +17,8 @@ from pathlib import Path
 from .hook import atomic_json
 
 ENTRY = Path(__file__).resolve().parent / "entry.py"
-TITLE = 'tui.terminal_title=["model","context-used","thread-id"]'
+TITLE = 'tui.terminal_title=["model","context-used","thread-id","thread-title","activity"]'
+SPINNER = "\u280b\u2819\u2839\u2838\u283c\u2834\u2826\u2827\u2807\u280f"
 NONINTERACTIVE = {
     "exec",
     "e",
@@ -143,6 +145,31 @@ def binding_for(bindings, hint, launch_id):
     return candidates[0] if len(candidates) == 1 else None
 
 
+def restore_title(env=os.environ):
+    """XTPOPTITLE, then over SSH name the host: some terminals (Ghostty) ignore the pop."""
+    text = "\x1b[23;0t"
+    if env.get("SSH_CONNECTION"):
+        from .render import _safe
+
+        host = _safe(socket.gethostname().split(".")[0], ascii_only=False, tmux=False)
+        text += f"\x1b]2;ssh: {host}\x07"
+    return text
+
+
+def outer_title(state, cwd, frame=0):
+    """Outer tab title: Codex's thread title, else ``codex · <dir>``; a spinner while working.
+
+    Codex marks activity with a static glyph, so the spinner frames are ours.
+    """
+    from .render import _safe
+
+    text = state.get("thread_title")
+    if not text:
+        text = "codex · " + ("~" if cwd == os.path.expanduser("~") else Path(cwd).name or cwd)
+    text = _safe(text, ascii_only=False, tmux=False)
+    return (SPINNER[frame % len(SPINNER)] + " " if state.get("working") else "") + text
+
+
 def placeholder(width=80):
     """Use the normal layout before telemetry arrives or while it is unavailable."""
     from .data import newest_quotas, sessions_dir
@@ -201,7 +228,10 @@ def launch(args):
         'set -g status-format "#{status-left}"\n'
         'set -g status-left ""\n'
         "set -g allow-rename off\n"
-        "set -g set-titles off\n"
+        # The outer tab shows @outer_title, a short summary kept by the monitor.
+        # tmux inserts option values literally, without expanding formats.
+        "set -g set-titles on\n"
+        'set -g set-titles-string "#{@outer_title}"\n'
         "set -g mouse on\n"
         # Every key belongs to Codex: no prefix (Ctrl-B), no wait after Esc.
         "set -g prefix None\n"
@@ -251,6 +281,7 @@ def launch(args):
             ).start()
         sessions, readers, others, scan_at = sessions_dir(), {}, {}, 0.0
         last_line = last_second = None
+        last_title, frame = outer_title({}, config["cwd"]), 0
         # git runs in its own thread every 5 s, so a slow repo never delays the bar.
         repo = {"cwd": config["cwd"], "status": None}
         if "git" in cfg["line2"]:
@@ -277,7 +308,19 @@ def launch(args):
                 if p.returncode:
                     return
                 title, _, width = p.stdout.rstrip("\n").partition("\n")
-                state = parse_title(title)
+                parsed, error = {}, None
+                try:
+                    parsed = parse_title(title)
+                except ValueError as invalid:
+                    error = invalid
+                frame += 1
+                tab = outer_title(parsed, config["cwd"], frame)
+                if tab != last_title:
+                    call("set-option", "-t", "codex", "@outer_title", tab)
+                    last_title = tab
+                if error:
+                    raise error
+                state = parsed
                 state["cwd"] = config["cwd"]
                 state["quotas"] = {}
                 if time.monotonic() - scan_at > 10:
@@ -317,7 +360,10 @@ def launch(args):
                         call("set-option", "-t", "codex", "@line2", second)
                         last_second = second
                 # Save metadata-only current view for doctor/tests; never pane text.
-                atomic_json(root / "view.json", state)
+                # The thread title summarizes the prompt; it goes only to the tab.
+                atomic_json(
+                    root / "view.json", {k: v for k, v in state.items() if k != "thread_title"}
+                )
             except Exception as error:
                 atomic_json(root / "error.json", {"error": repr(error)[:500]})
                 last_line = None
@@ -350,6 +396,7 @@ def launch(args):
         )
         if p.returncode:
             raise RuntimeError(p.stderr.strip() or "tmux initialization failed")
+        call("set-option", "-t", "codex", "@outer_title", outer_title({}, cwd))
         # Beyond this boundary a child may exist even if tmux times out.
         started = True
         p = call(
@@ -366,6 +413,10 @@ def launch(args):
             raise RuntimeError(p.stderr.strip() or "tmux child launch failed")
         worker = threading.Thread(target=monitor, daemon=True)
         worker.start()
+        # Save the outer title (XTPUSHTITLE); restored once tmux exits.
+        sys.stdout.write("\x1b[22;0t")
+        sys.stdout.flush()
+        pushed = True
         attach = subprocess.Popen([*base, "attach-session", "-t", "codex"], env=env)
         attach.wait()
         if (root / "exit.json").exists():
@@ -398,4 +449,7 @@ def launch(args):
                 attach.wait(timeout=3)
         if "worker" in locals():
             worker.join(timeout=3)
+        if "pushed" in locals():
+            sys.stdout.write(restore_title())
+            sys.stdout.flush()
         shutil.rmtree(root, ignore_errors=True)

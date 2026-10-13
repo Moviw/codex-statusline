@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **Tab title**: the terminal tab shows Codex's thread title, with a spinner in front while Codex works (`⠋ Fix login bug`). Before the thread has a title it shows `codex · <project>` (`~` in your home directory). Codex's own title stays inside the private tmux for the bar, so the tab previously kept whatever was there before. The previous title is restored when Codex exits. Some terminals (Ghostty) ignore that restore, so over SSH the tab is then set to `ssh: <host>` instead of keeping the thread title.
+
 ## 0.7.1
 
 - Show the current model and version in Claude Code by default. Toggle or reorder the `model` segment per tool in `cxbar config`; it remains off by default in Codex.

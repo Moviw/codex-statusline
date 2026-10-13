@@ -58,6 +58,8 @@ class ParseTitleTests(unittest.TestCase):
                 "model": "statusline-probe",
                 "context_used": 0.0,
                 "session_hint": "01a0ed06-6030-7992-8ec2-b2cf1...",
+                "thread_title": None,
+                "working": False,
             },
         )
 
@@ -83,12 +85,29 @@ class ParseTitleTests(unittest.TestCase):
             )["context_used"]
         )
 
+    def test_thread_title_and_activity(self):
+        hint = "01a0ed06-6030-7992-8ec2-b2cf1..."
+        full = "01a0ed06-6030-7992-8ec2-b2cf1e2d3c4b"
+        cases = {
+            # Before Codex names the thread it shows the full UUID: no title.
+            f"gpt | Context 0% used | {hint} | {full}": (None, False),
+            # First turn: Codex's own spinner trails both ID fields.
+            f"gpt | Context 0% used | {hint} \u2834 | {full} \u2834": (None, True),
+            f"gpt | Context 3% used | {hint} | Fix a | b \u280b": ("Fix a | b", True),
+            f"gpt | {hint} | Fix login": ("Fix login", False),
+        }
+        for title, (thread_title, working) in cases.items():
+            with self.subTest(title=title):
+                state = parse_title(title)
+                self.assertEqual(state["session_hint"], hint)
+                self.assertEqual((state["thread_title"], state["working"]), (thread_title, working))
+
     def test_rejects_malformed_title_instead_of_guessing(self):
         for title in (
             " | Context 0% used | 01a0ed06-6030-7992-8ec2-b2cf1...",
             "model | context 0% | 01a0ed06-6030-7992-8ec2-b2cf1...",
             "model | Context 0% used | not-a-thread",
-            "model | Context 0% used | 01a0ed06-6030-7992-8ec2-b2cf1... | extra",
+            "model | Context 0% used | extra | 01a0ed06-6030-7992-8ec2-b2cf1...",
         ):
             with self.subTest(title=title), self.assertRaises(ValueError):
                 parse_title(title)
