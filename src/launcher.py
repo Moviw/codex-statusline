@@ -16,7 +16,8 @@ from pathlib import Path
 from .hook import atomic_json
 
 ENTRY = Path(__file__).resolve().parent / "entry.py"
-TITLE = 'tui.terminal_title=["model","context-used","thread-id"]'
+TITLE = 'tui.terminal_title=["model","context-used","thread-id","thread-title","activity"]'
+SPINNER = "\u280b\u2819\u2839\u2838\u283c\u2834\u2826\u2827\u2807\u280f"
 NONINTERACTIVE = {
     "exec",
     "e",
@@ -143,13 +144,18 @@ def binding_for(bindings, hint, launch_id):
     return candidates[0] if len(candidates) == 1 else None
 
 
-def outer_title(pane_title, cwd):
-    """Short title for the outer terminal tab, keeping Codex's working spinner."""
+def outer_title(state, cwd, frame=0):
+    """Outer tab title: Codex's thread title, else ``codex · <dir>``; a spinner while working.
+
+    Codex marks activity with a static glyph, so the spinner frames are ours.
+    """
     from .render import _safe
 
-    spinner = re.search(r" ([\u2800-\u28ff])$", pane_title or "")
-    name = _safe(Path(cwd).name or cwd, ascii_only=False, tmux=False)
-    return (spinner.group(1) + " " if spinner else "") + "codex · " + name
+    text = state.get("thread_title")
+    if not text:
+        text = "codex · " + ("~" if cwd == os.path.expanduser("~") else Path(cwd).name or cwd)
+    text = _safe(text, ascii_only=False, tmux=False)
+    return (SPINNER[frame % len(SPINNER)] + " " if state.get("working") else "") + text
 
 
 def placeholder(width=80):
@@ -263,7 +269,7 @@ def launch(args):
             ).start()
         sessions, readers, others, scan_at = sessions_dir(), {}, {}, 0.0
         last_line = last_second = None
-        last_title = outer_title("", config["cwd"])
+        last_title, frame = outer_title({}, config["cwd"]), 0
         # git runs in its own thread every 5 s, so a slow repo never delays the bar.
         repo = {"cwd": config["cwd"], "status": None}
         if "git" in cfg["line2"]:
@@ -290,11 +296,19 @@ def launch(args):
                 if p.returncode:
                     return
                 title, _, width = p.stdout.rstrip("\n").partition("\n")
-                tab = outer_title(title, config["cwd"])
+                parsed, error = {}, None
+                try:
+                    parsed = parse_title(title)
+                except ValueError as invalid:
+                    error = invalid
+                frame += 1
+                tab = outer_title(parsed, config["cwd"], frame)
                 if tab != last_title:
                     call("set-option", "-t", "codex", "@outer_title", tab)
                     last_title = tab
-                state = parse_title(title)
+                if error:
+                    raise error
+                state = parsed
                 state["cwd"] = config["cwd"]
                 state["quotas"] = {}
                 if time.monotonic() - scan_at > 10:
@@ -334,7 +348,10 @@ def launch(args):
                         call("set-option", "-t", "codex", "@line2", second)
                         last_second = second
                 # Save metadata-only current view for doctor/tests; never pane text.
-                atomic_json(root / "view.json", state)
+                # The thread title summarizes the prompt; it goes only to the tab.
+                atomic_json(
+                    root / "view.json", {k: v for k, v in state.items() if k != "thread_title"}
+                )
             except Exception as error:
                 atomic_json(root / "error.json", {"error": repr(error)[:500]})
                 last_line = None
@@ -367,7 +384,7 @@ def launch(args):
         )
         if p.returncode:
             raise RuntimeError(p.stderr.strip() or "tmux initialization failed")
-        call("set-option", "-t", "codex", "@outer_title", outer_title("", cwd))
+        call("set-option", "-t", "codex", "@outer_title", outer_title({}, cwd))
         # Beyond this boundary a child may exist even if tmux times out.
         started = True
         p = call(

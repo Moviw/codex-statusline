@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- **Tab title**: the terminal tab shows `codex · <project>`, with Codex's spinner in front while it works (`⠋ codex · <project>`). Codex's own title stays inside the private tmux for the bar, so the tab previously kept whatever was there before. The previous title is restored when Codex exits.
+- **Tab title**: the terminal tab shows Codex's thread title, with a spinner in front while Codex works (`⠋ Fix login bug`). Before the thread has a title it shows `codex · <project>` (`~` in your home directory). Codex's own title stays inside the private tmux for the bar, so the tab previously kept whatever was there before. The previous title is restored when Codex exits.
 
 ## 0.7.1
 

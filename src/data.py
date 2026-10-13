@@ -24,29 +24,35 @@ _CONTEXT = re.compile(r"^Context ([0-9]+(?:\.[0-9]+)?)% used$")
 _MAX_READ_BYTES = 1024 * 1024
 
 
+_SPINNER = re.compile(r"(?: [\u2800-\u28ff])+$")
+
+
+def _is_hint(text: str) -> bool:
+    return bool(_SESSION_HINT.fullmatch(text) or _FULL_SESSION.fullmatch(text))
+
+
 def parse_title(title: str) -> dict[str, Any]:
-    """Parse Codex's native ``[model, context-used, thread-id]`` title.
+    """Parse Codex's native ``[model, context-used, thread-id, thread-title, activity]`` title.
 
     The emitted thread ID is a UUID shortened to its first 29 characters and
     ``...``.  A full UUID is also accepted for environments that render it
-    without truncation.  A two-field ``model | session`` title is a valid
-    context-less variant; its context is returned as ``None``.  Malformed or
-    ambiguous titles raise ``ValueError`` rather than guessing.
+    without truncation.  The context field may be absent; its context is then
+    returned as ``None``.  The thread title is optional and may contain ``|``;
+    before Codex names the thread it shows the full UUID, which is treated as
+    no title.  Codex's activity spinner trails the title while it works.
+    Malformed or ambiguous titles raise ``ValueError`` rather than guessing.
     """
     if not isinstance(title, str):
         raise TypeError("title must be a string")
-    parts = [part.strip() for part in title.split("|")]
-    if len(parts) not in (2, 3) or not parts[0]:
+    working = bool(_SPINNER.search(title))
+    parts = [_SPINNER.sub("", part.strip()) for part in title.split("|")]
+    index = next((i for i in (1, 2) if i < len(parts) and _is_hint(parts[i])), None)
+    if index is None or not parts[0]:
         raise ValueError("not a supported Codex status title")
-
-    session_hint = re.sub(
-        r" [\u2800-\u28ff]$", "", parts[-1]
-    )  # native thread-title progress spinner
-    if not (_SESSION_HINT.fullmatch(session_hint) or _FULL_SESSION.fullmatch(session_hint)):
-        raise ValueError("title does not end in a recognizable thread ID")
+    session_hint = parts[index]
 
     context_used: float | None = None
-    if len(parts) == 3:
+    if index == 2:
         match = _CONTEXT.fullmatch(parts[1])
         if match:
             parsed_context = float(match.group(1))
@@ -55,10 +61,13 @@ def parse_title(title: str) -> dict[str, Any]:
         elif parts[1] not in ("Context unknown", ""):
             raise ValueError("unrecognized context field")
 
+    thread_title = " | ".join(parts[index + 1 :]).strip()
     return {
         "model": parts[0],
         "context_used": context_used,
         "session_hint": session_hint,
+        "thread_title": None if not thread_title or _is_hint(thread_title) else thread_title,
+        "working": working,
     }
 
 

@@ -6,19 +6,20 @@ import time
 import unittest
 from pathlib import Path
 
-from src.launcher import outer_title
+from src.launcher import SPINNER, outer_title
 from src.render import render
 
 
 class OuterTitleTests(unittest.TestCase):
-    def test_short_title_keeps_spinner_and_drops_control_characters(self):
-        hint = "01a0ed06-6030-7992-8ec2-b2cf1..."
-        self.assertEqual(
-            outer_title(f"gpt | Context 3% used | {hint} \u280b", "/w/app"), "\u280b codex · app"
-        )
-        self.assertEqual(outer_title(f"gpt | {hint}", "/w/app"), "codex · app")
-        self.assertEqual(outer_title("", "/w/a\x1b]0;x\x07b"), "codex · ab")
-        self.assertEqual(outer_title("", "/"), "codex · /")
+    def test_thread_title_dir_fallback_and_own_spinner_frames(self):
+        home = os.path.expanduser("~")
+        self.assertEqual(outer_title({"thread_title": "Fix login"}, "/w/app"), "Fix login")
+        self.assertEqual(outer_title({}, "/w/app"), "codex · app")
+        self.assertEqual(outer_title({"thread_title": None}, home), "codex · ~")
+        self.assertEqual(outer_title({}, "/"), "codex · /")
+        self.assertEqual(outer_title({"thread_title": "a\x1b]0;x\x07b"}, "/"), "ab")
+        frames = {outer_title({"working": True}, "/w/app", i) for i in range(len(SPINNER))}
+        self.assertEqual(frames, {f"{c} codex · app" for c in SPINNER})
 
 
 @unittest.skipUnless(shutil.which("tmux"), "tmux not installed")
