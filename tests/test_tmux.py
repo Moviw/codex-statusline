@@ -6,7 +6,19 @@ import time
 import unittest
 from pathlib import Path
 
+from src.launcher import outer_title
 from src.render import render
+
+
+class OuterTitleTests(unittest.TestCase):
+    def test_short_title_keeps_spinner_and_drops_control_characters(self):
+        hint = "01a0ed06-6030-7992-8ec2-b2cf1..."
+        self.assertEqual(
+            outer_title(f"gpt | Context 3% used | {hint} \u280b", "/w/app"), "\u280b codex · app"
+        )
+        self.assertEqual(outer_title(f"gpt | {hint}", "/w/app"), "codex · app")
+        self.assertEqual(outer_title("", "/w/a\x1b]0;x\x07b"), "codex · ab")
+        self.assertEqual(outer_title("", "/"), "codex · /")
 
 
 @unittest.skipUnless(shutil.which("tmux"), "tmux not installed")
@@ -47,5 +59,16 @@ class TmuxTests(unittest.TestCase):
                 time.sleep(0.2)
                 self.assertFalse(sentinel.exists())
                 self.assertEqual(len(run("list-panes").stdout.splitlines()), 1)
+                # The outer title is the literal option value, never a format.
+                self.assertEqual(
+                    run("set-option", "set-titles-string", "#{@outer_title}").returncode, 0
+                )
+                self.assertEqual(
+                    run("set-option", "@outer_title", f"#(touch {sentinel}) ##").returncode, 0
+                )
+                expanded = run("display-message", "-p", "#{T:set-titles-string}").stdout
+                self.assertEqual(expanded.strip(), f"#(touch {sentinel}) ##")
+                time.sleep(0.2)
+                self.assertFalse(sentinel.exists())
             finally:
                 run("kill-server")

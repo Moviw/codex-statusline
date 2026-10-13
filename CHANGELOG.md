@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **Tab title**: the terminal tab shows `codex · <project>`, with Codex's spinner in front while it works (`⠋ codex · <project>`). Codex's own title stays inside the private tmux for the bar, so the tab previously kept whatever was there before. The previous title is restored when Codex exits.
+
 ## 0.7.1
 
 - Show the current model and version in Claude Code by default. Toggle or reorder the `model` segment per tool in `cxbar config`; it remains off by default in Codex.

@@ -143,6 +143,15 @@ def binding_for(bindings, hint, launch_id):
     return candidates[0] if len(candidates) == 1 else None
 
 
+def outer_title(pane_title, cwd):
+    """Short title for the outer terminal tab, keeping Codex's working spinner."""
+    from .render import _safe
+
+    spinner = re.search(r" ([\u2800-\u28ff])$", pane_title or "")
+    name = _safe(Path(cwd).name or cwd, ascii_only=False, tmux=False)
+    return (spinner.group(1) + " " if spinner else "") + "codex · " + name
+
+
 def placeholder(width=80):
     """Use the normal layout before telemetry arrives or while it is unavailable."""
     from .data import newest_quotas, sessions_dir
@@ -201,7 +210,10 @@ def launch(args):
         'set -g status-format "#{status-left}"\n'
         'set -g status-left ""\n'
         "set -g allow-rename off\n"
-        "set -g set-titles off\n"
+        # The outer tab shows @outer_title, a short summary kept by the monitor.
+        # tmux inserts option values literally, without expanding formats.
+        "set -g set-titles on\n"
+        'set -g set-titles-string "#{@outer_title}"\n'
         "set -g mouse on\n"
         # Every key belongs to Codex: no prefix (Ctrl-B), no wait after Esc.
         "set -g prefix None\n"
@@ -251,6 +263,7 @@ def launch(args):
             ).start()
         sessions, readers, others, scan_at = sessions_dir(), {}, {}, 0.0
         last_line = last_second = None
+        last_title = outer_title("", config["cwd"])
         # git runs in its own thread every 5 s, so a slow repo never delays the bar.
         repo = {"cwd": config["cwd"], "status": None}
         if "git" in cfg["line2"]:
@@ -277,6 +290,10 @@ def launch(args):
                 if p.returncode:
                     return
                 title, _, width = p.stdout.rstrip("\n").partition("\n")
+                tab = outer_title(title, config["cwd"])
+                if tab != last_title:
+                    call("set-option", "-t", "codex", "@outer_title", tab)
+                    last_title = tab
                 state = parse_title(title)
                 state["cwd"] = config["cwd"]
                 state["quotas"] = {}
@@ -350,6 +367,7 @@ def launch(args):
         )
         if p.returncode:
             raise RuntimeError(p.stderr.strip() or "tmux initialization failed")
+        call("set-option", "-t", "codex", "@outer_title", outer_title("", cwd))
         # Beyond this boundary a child may exist even if tmux times out.
         started = True
         p = call(
@@ -366,6 +384,10 @@ def launch(args):
             raise RuntimeError(p.stderr.strip() or "tmux child launch failed")
         worker = threading.Thread(target=monitor, daemon=True)
         worker.start()
+        # Save the outer title (XTPUSHTITLE); restored once tmux exits.
+        sys.stdout.write("\x1b[22;0t")
+        sys.stdout.flush()
+        pushed = True
         attach = subprocess.Popen([*base, "attach-session", "-t", "codex"], env=env)
         attach.wait()
         if (root / "exit.json").exists():
@@ -398,4 +420,7 @@ def launch(args):
                 attach.wait(timeout=3)
         if "worker" in locals():
             worker.join(timeout=3)
+        if "pushed" in locals():
+            sys.stdout.write("\x1b[23;0t")
+            sys.stdout.flush()
         shutil.rmtree(root, ignore_errors=True)
