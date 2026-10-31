@@ -54,7 +54,8 @@ def load_config(path: str | os.PathLike | None = None, target: str = "codex") ->
         path = config_path()
     config = dict(_CONFIG_DEFAULTS)
     if target == "claude":
-        config["segments"] = ["model", *DEFAULT_SEGMENTS]
+        # Claude's token counts describe the current context only, which ctx already shows.
+        config["segments"] = ["model", "ctx", "5h", "week"]
     try:
         raw = tomllib.loads(Path(path).read_text())
     except FileNotFoundError:

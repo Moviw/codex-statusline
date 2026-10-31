@@ -84,7 +84,9 @@ class TwoToolTests(unittest.TestCase):
                 self.assertNotIn("tokens", load_config(path, "codex")["segments"])
                 self.assertEqual(load_config(path, "codex")["theme"], "auto")
                 self.assertEqual(load_config(path, "claude")["theme"], "light")
-                self.assertIn("tokens", load_config(path, "claude")["segments"])
+                self.assertEqual(
+                    load_config(path, "claude")["segments"], ["model", "ctx", "5h", "week"]
+                )
 
     def test_old_flat_config_applies_to_both_tools(self):
         with tempfile.TemporaryDirectory() as tmp:

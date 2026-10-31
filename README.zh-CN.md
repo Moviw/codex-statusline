@@ -46,13 +46,13 @@ cxbar install                       # 加 --dry-run 先看会改什么
 同一条底栏也能用在 [Claude Code](https://code.claude.com/docs/en/statusline) 里：`cxbar install` 检测到 `~/.claude` 时，会把它设为 Claude Code 的 `statusLine`，运行 `claude` 就能看到同样的两行，外加本次会话的花费：
 
 ```text
-CTX USED ███░░░░░ 35% | 5h ██░░░░░░░░ 18% 3:46pm | week ██████░░░░ 62% Sat 1:46pm | tok 1.2M
+CTX USED ███░░░░░ 35% | 5h ██░░░░░░░░ 18% 3:46pm | week ██████░░░░ 62% Sat 1:46pm
 in 1.2M · 94% cached · out 44.0k · ≈$1.84
 ```
 
 - **保留你原有的设置**：已经在用别的 statusLine？安装时不会覆盖；想换成这条就用 `cxbar install --claude`，`cxbar uninstall` 会把你原来的还回去。
 - **Claude 这边不需要 tmux**：Claude Code 直接把数据交给底栏。
-- **所有账号都能用**：Pro 和 Max 显示 5h 与周额度及重置时间；API key 用户显示 context、token 和花费。
+- **所有账号都能用**：订阅用户显示 5h 与周额度及重置时间；没有 5 小时窗口的套餐（Claude Ultra、Codex Pro）只显示周额度。API key 用户显示 context、token 和花费。
 - **一份配置**：`cxbar config` 同时改两边的底栏。
 
 ## 使用
@@ -105,7 +105,7 @@ cxbar uninstall
 
 第二行有四项：
 
-- `usage`（默认打开）：发送的 token 数、其中命中缓存的比例、生成的 token 数。
+- `usage`（默认打开）：发送的 token 数、其中命中缓存的比例、生成的 token 数。在 Claude Code 里，这是 Claude Code 报告的当前 context 中的 token 数，缓存比例是整个会话的命中率；也因此 Claude Code 默认不显示 `tokens` 段。
 - `cost`（默认打开）：按标价估算的本次会话花费，仅 Claude Code 有。
 - `git`（默认打开）：当前分支，以及相对上次提交增删了多少行，agent 新建的文件也算在内，例如 `⎇ main +42 -10`。不在 git 仓库里时不显示。
 - `pace`（默认关闭）：按目前的使用速度，5h 和周额度会在什么时候用完，例如 `week pace: runs out ~Tue 1:27am`；撑得到重置时显示 `lasts to reset`。
@@ -127,7 +127,7 @@ update_check = true  # 有新版本时在底栏显示 "↑ update available"
 line2 = ["usage", "cost", "git"]  # 第二行："usage"、"cost"、"git"、"pace" 任选，[] 不显示
 
 [claude]
-segments = ["model", "ctx", "5h", "week", "tokens"]
+segments = ["model", "ctx", "5h", "week"]
 line2 = ["usage", "cost", "git", "pace"]  # 例如只在 Claude Code 里显示 pace
 ```
 

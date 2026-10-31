@@ -56,13 +56,18 @@ def state_from(data: dict, now: float) -> dict:
     given, output = _num(window.get("total_input_tokens")), _num(window.get("total_output_tokens"))
     if given is not None and output is not None:
         state["tokens"] = given + output
-        # Claude reports the cache split for the latest request only; use it as the hit rate.
-        last = window.get("current_usage") if isinstance(window.get("current_usage"), dict) else {}
-        keys = ("input_tokens", "cache_read_input_tokens", "cache_creation_input_tokens")
-        parts = [_num(last.get(k)) or 0.0 for k in keys]
+        # Prefer the session-wide hit ratio; older Claude Code only has the latest request's split.
+        cache = data.get("prompt_cache") if isinstance(data.get("prompt_cache"), dict) else {}
+        ratio = _num(cache.get("hit_ratio"))
+        if ratio is None:
+            last = window.get("current_usage")
+            last = last if isinstance(last, dict) else {}
+            keys = ("input_tokens", "cache_read_input_tokens", "cache_creation_input_tokens")
+            parts = [_num(last.get(k)) or 0.0 for k in keys]
+            ratio = parts[1] / sum(parts) if sum(parts) else None
         state["usage"] = {
             "input_tokens": given,
-            "cached_input_tokens": given * parts[1] / sum(parts) if sum(parts) else None,
+            "cached_input_tokens": given * min(ratio, 1.0) if ratio is not None else None,
             "output_tokens": output,
         }
     state["cost"] = _num(cost.get("total_cost_usd"))

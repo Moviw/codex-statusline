@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.7.2
+
+- Plans without a 5-hour window (Claude Ultra, formerly Max 20x; Codex Pro) show only the weekly quota. Claude Code leaves the window out of its JSON, and the bar follows it: nothing is guessed.
+- Claude Code: the `tokens` segment is off by default. Claude Code reports the tokens currently in context, not a session total, and `ctx` already shows that. Turn it back on in `cxbar config` if you want it.
+- Claude Code: the cache rate on the second line uses the session-wide `prompt_cache.hit_ratio` when available, falling back to the latest request's split on older versions.
+- Fix (Codex): quota from a model-specific limit bucket (`limit_id` other than `codex`) is no longer shown as the account quota.
+- Codex: 5h and weekly windows are recognized within 5% of their length, matching Codex's own TUI.
+- Verified with Codex CLI 0.162.1.
+
 ## 0.7.1
 
 - Show the current model and version in Claude Code by default. Toggle or reorder the `model` segment per tool in `cxbar config`; it remains off by default in Codex.

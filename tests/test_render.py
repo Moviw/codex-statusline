@@ -246,7 +246,7 @@ class ConfigTests(unittest.TestCase):
             path = Path(tmp) / "config.toml"
             self.assertEqual(load_config(path)["segments"], ["ctx", "5h", "week", "tokens"])
             self.assertEqual(
-                load_config(path, "claude")["segments"], ["model", "ctx", "5h", "week", "tokens"]
+                load_config(path, "claude")["segments"], ["model", "ctx", "5h", "week"]
             )
             path.write_text('segments = ["week", "ctx"]\ntheme = "neon"\nwarn_at = 30\n')
             cfg = load_config(path)

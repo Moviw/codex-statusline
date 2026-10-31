@@ -75,6 +75,21 @@ class ClaudeStatuslineTests(unittest.TestCase):
         self.assertNotIn("cached", plain)
         self.assertIn("in 52.0k · out 3.1k · ≈$0.43", plain)
 
+    def test_plan_without_5h_window_shows_weekly_only(self):
+        data = dict(SUBSCRIBER, rate_limits={"seven_day": SUBSCRIBER["rate_limits"]["seven_day"]})
+        plain = ANSI.sub("", run_statusline(data, self.home))
+        self.assertNotIn("5h", plain)
+        self.assertIn("week", plain)
+
+    def test_tokens_segment_off_by_default(self):
+        self.assertNotIn("tok ", ANSI.sub("", run_statusline(SUBSCRIBER, self.home)))
+
+    def test_session_hit_ratio_preferred_over_last_request(self):
+        data = dict(SUBSCRIBER, prompt_cache={"hit_ratio": 0.5})
+        self.assertIn("50% cached", ANSI.sub("", run_statusline(data, self.home)))
+        data = dict(SUBSCRIBER, prompt_cache={"hit_ratio": None})
+        self.assertIn("94% cached", ANSI.sub("", run_statusline(data, self.home)))
+
     def test_bad_input_still_prints_a_bar(self):
         for data in ("not json", "[1, 2]", ""):
             self.assertIn("CTX USED", run_statusline(data, self.home))

@@ -47,13 +47,13 @@ Missing tmux? `brew install tmux` or `sudo apt install tmux`.
 The same bar works in [Claude Code](https://code.claude.com/docs/en/statusline): `cxbar install` sets it as Claude Code's `statusLine` when it finds `~/.claude`, so `claude` shows the current model and the same two lines, plus the session cost:
 
 ```text
-Opus 5.5 | CTX USED ███░░░░░ 35% | 5h ██░░░░░░░░ 18% 3:46pm | week ██████░░░░ 62% Sat 1:46pm | tok 1.2M
+Opus 5.5 | CTX USED ███░░░░░ 35% | 5h ██░░░░░░░░ 18% 3:46pm | week ██████░░░░ 62% Sat 1:46pm
 in 1.2M · 94% cached · out 44.0k · ≈$1.84
 ```
 
 - **Keeps what you have.** Already using another statusLine? Install leaves it alone; `cxbar install --claude` switches, and `cxbar uninstall` puts yours back.
 - **No tmux needed** on the Claude side: Claude Code passes the numbers to the bar directly.
-- **Every account.** Pro and Max see 5h and weekly quota with reset times; API-key users see context, tokens, and cost.
+- **Every account.** Subscribers see 5h and weekly quota with reset times; plans without a 5-hour window (Claude Ultra, Codex Pro) show only the weekly quota. API-key users see context, tokens, and cost.
 - **One config.** `cxbar config` changes the bar in both tools.
 
 ## Usage
@@ -106,7 +106,7 @@ Run `cxbar config` to set everything up in an interactive screen with a live, co
 
 The second line has four parts:
 
-- `usage` (on by default): tokens sent, how much of that hit the cache, and tokens generated.
+- `usage` (on by default): tokens sent, how much of that hit the cache, and tokens generated. In Claude Code these are the tokens currently in context, as Claude Code reports them, with the session-wide cache hit rate; that is also why the `tokens` segment is off there by default.
 - `cost` (on by default): the session's estimated cost at list price. Claude Code only.
 - `git` (on by default): the branch and how many lines are added and removed since the last commit, counting new files the agent created too, e.g. `⎇ main +42 -10`. Hidden outside a git repo.
 - `pace` (off by default): when your 5h and weekly quota run out at the rate you have used them so far, e.g. `week pace: runs out ~Tue 1:27am`, or `lasts to reset`.
@@ -128,7 +128,7 @@ update_check = true  # show "↑ update available" in the bar when one is out
 line2 = ["usage", "cost", "git"]  # second line: any of "usage", "cost", "git", "pace"; [] for none
 
 [claude]
-segments = ["model", "ctx", "5h", "week", "tokens"]
+segments = ["model", "ctx", "5h", "week"]
 line2 = ["usage", "cost", "git", "pace"]  # e.g. pace only in Claude Code
 ```
 

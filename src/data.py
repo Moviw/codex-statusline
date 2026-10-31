@@ -99,6 +99,16 @@ def _timestamp(value: Any) -> float | None:
     return None
 
 
+def _window_label(minutes: Any) -> str | None:
+    """Name a window by its length, within the same 5% tolerance Codex's own TUI uses."""
+    if not _count(minutes):
+        return None
+    for base, label in ((300, "5h"), (10080, "weekly")):
+        if abs(minutes - base) <= base * 0.05:
+            return label
+    return None
+
+
 def _empty_quotas() -> dict[str, dict[str, float | None]]:
     return {
         "5h": {"remaining": None, "reset_at": None, "observed_at": None},
@@ -168,12 +178,16 @@ class LogReader:
         if not isinstance(rate_limits, dict):
             return
 
-        # Slots vary by plan (e.g. Plus may carry only the weekly window in "primary"),
+        # Model-specific buckets (e.g. "codex_other") are not the account-wide quota.
+        limit_id = rate_limits.get("limit_id")
+        if limit_id is not None and limit_id != "codex":
+            return
+
+        # Slots vary by plan (e.g. Pro has no 5h window, so weekly may sit in "primary"),
         # so identify each quota by its window length, not by its key.
-        windows = {300: "5h", 10080: "weekly"}
         for key in ("primary", "secondary"):
             quota = rate_limits.get(key)
-            label = windows.get(quota.get("window_minutes")) if isinstance(quota, dict) else None
+            label = _window_label(quota.get("window_minutes")) if isinstance(quota, dict) else None
             if label is None:
                 continue
             used = quota.get("used_percent")

@@ -122,7 +122,7 @@ class LogReaderTests(unittest.TestCase):
             self.assertIsNone(reader.update(str(second))["tokens"])
 
     def test_weekly_only_plan_in_primary_slot(self):
-        # Plus plans may report only the weekly window, placed in "primary".
+        # Plans without a 5h window (e.g. Pro) report only the weekly one, in "primary".
         event = token_event(1000, primary_used=11, primary_window=10080)
         event["payload"]["info"]["rate_limits"]["secondary"] = None
         with tempfile.TemporaryDirectory() as tmp:
@@ -131,6 +131,27 @@ class LogReaderTests(unittest.TestCase):
             quotas = LogReader().update(str(path))["quotas"]
         self.assertEqual(quotas["weekly"]["remaining"], 89.0)
         self.assertIsNone(quotas["5h"]["remaining"])
+
+    def test_windows_match_within_five_percent(self):
+        event = token_event(1000, 10, 20, primary_window=299, secondary_window=10100)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "s.jsonl"
+            path.write_bytes(line(event))
+            quotas = LogReader().update(str(path))["quotas"]
+        self.assertEqual(quotas["5h"]["remaining"], 90.0)
+        self.assertEqual(quotas["weekly"]["remaining"], 80.0)
+
+    def test_model_specific_limit_bucket_is_ignored(self):
+        account = token_event(1000, 10, 20)
+        account["payload"]["info"]["rate_limits"]["limit_id"] = "codex"
+        other = token_event(2000, 90, 90)
+        other["payload"]["info"]["rate_limits"]["limit_id"] = "codex_other"
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "s.jsonl"
+            path.write_bytes(line(account) + line(other))
+            quotas = LogReader().update(str(path))["quotas"]
+        self.assertEqual(quotas["5h"]["remaining"], 90.0)
+        self.assertEqual(quotas["weekly"]["observed_at"], 1000.0)
 
     def test_newest_quota_across_sessions_wins(self):
         with tempfile.TemporaryDirectory() as tmp:
